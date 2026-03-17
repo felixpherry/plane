@@ -38,7 +38,7 @@ export class CustomFieldService extends APIService {
     projectId: string
   ): Promise<ICustomField[]> {
     return this.get(
-      `/api/v1/workspaces/${workspaceSlug}/projects/${projectId}/custom-fields/`
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/custom-fields/`
     )
       .then((response) => response?.data)
       .catch((error) => {
@@ -55,7 +55,7 @@ export class CustomFieldService extends APIService {
     data: ICustomFieldCreatePayload
   ): Promise<ICustomField> {
     return this.post(
-      `/api/v1/workspaces/${workspaceSlug}/projects/${projectId}/custom-fields/`,
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/custom-fields/`,
       data
     )
       .then((response) => response?.data)
@@ -73,7 +73,7 @@ export class CustomFieldService extends APIService {
     fieldId: string
   ): Promise<ICustomField> {
     return this.get(
-      `/api/v1/workspaces/${workspaceSlug}/projects/${projectId}/custom-fields/${fieldId}/`
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/custom-fields/${fieldId}/`
     )
       .then((response) => response?.data)
       .catch((error) => {
@@ -91,7 +91,7 @@ export class CustomFieldService extends APIService {
     data: ICustomFieldUpdatePayload
   ): Promise<ICustomField> {
     return this.patch(
-      `/api/v1/workspaces/${workspaceSlug}/projects/${projectId}/custom-fields/${fieldId}/`,
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/custom-fields/${fieldId}/`,
       data
     )
       .then((response) => response?.data)
@@ -109,7 +109,7 @@ export class CustomFieldService extends APIService {
     fieldId: string
   ): Promise<void> {
     return this.delete(
-      `/api/v1/workspaces/${workspaceSlug}/projects/${projectId}/custom-fields/${fieldId}/`
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/custom-fields/${fieldId}/`
     )
       .then((response) => response?.data)
       .catch((error) => {
@@ -130,7 +130,7 @@ export class CustomFieldService extends APIService {
     issueId: string
   ): Promise<ICustomFieldValue[]> {
     return this.get(
-      `/api/v1/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/custom-values/`
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/custom-values/`
     )
       .then((response) => response?.data)
       .catch((error) => {
@@ -149,7 +149,7 @@ export class CustomFieldService extends APIService {
     data: ICustomFieldValuePayload | ICustomFieldValuePayload[]
   ): Promise<ICustomFieldValueBulkResponse> {
     return this.post(
-      `/api/v1/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/custom-values/`,
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/custom-values/`,
       data
     )
       .then((response) => response?.data)
@@ -169,7 +169,7 @@ export class CustomFieldService extends APIService {
     data: Partial<ICustomFieldValuePayload>
   ): Promise<ICustomFieldValue> {
     return this.patch(
-      `/api/v1/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/custom-values/${valueId}/`,
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/custom-values/${valueId}/`,
       data
     )
       .then((response) => response?.data)
@@ -188,7 +188,7 @@ export class CustomFieldService extends APIService {
     valueId: string
   ): Promise<void> {
     return this.delete(
-      `/api/v1/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/custom-values/${valueId}/`
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/custom-values/${valueId}/`
     )
       .then((response) => response?.data)
       .catch((error) => {
