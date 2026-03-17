@@ -4,14 +4,13 @@ import { useRef, useState } from "react";
 import { Combobox } from "@headlessui/react";
 import { createPortal } from "react-dom";
 import { usePopper } from "react-popper";
+import { ChevronDown } from "lucide-react";
 // plane imports
 import { CheckIcon, SearchIcon } from "@plane/propel/icons";
 import { cn } from "@plane/utils";
 // hooks
 import { useDropdown } from "@/hooks/use-dropdown";
 import { usePlatformOS } from "@/hooks/use-platform-os";
-// components
-import { DropdownButton } from "@/components/dropdowns/buttons";
 
 type Props = {
   value: string;
@@ -92,14 +91,15 @@ export const CustomFieldSelectInput = ({
       onChange={handleSelect}
       disabled={disabled}
       onKeyDown={handleKeyDown}
-      className="h-full w-full grow"
+      className="group w-full grow"
     >
       <Combobox.Button as="div">
         <button
           ref={setReferenceElement}
           type="button"
           className={cn(
-            "clickable flex h-7.5 w-full items-center rounded-sm px-2 outline-none hover:bg-custom-background-80 transition-colors",
+            "clickable flex h-7.5 w-full items-center justify-between rounded-sm px-2 outline-none transition-colors",
+            "hover:bg-custom-background-80",
             {
               "cursor-not-allowed text-secondary": disabled,
               "cursor-pointer": !disabled,
@@ -110,12 +110,13 @@ export const CustomFieldSelectInput = ({
         >
           <span
             className={cn(
-              "flex-grow truncate text-left text-body-xs-medium leading-5",
-              value ? "text-secondary" : "text-placeholder"
+              "flex-grow truncate text-left text-body-xs-regular leading-5",
+              value ? "" : "text-placeholder"
             )}
           >
             {value || placeholder}
           </span>
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 hidden group-hover:inline text-custom-text-300" />
         </button>
       </Combobox.Button>
 
