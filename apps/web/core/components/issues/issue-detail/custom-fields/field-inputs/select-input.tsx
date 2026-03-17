@@ -1,16 +1,18 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Combobox } from "@headlessui/react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePopper } from "react-popper";
-import { ChevronDown } from "lucide-react";
+import { Combobox } from "@headlessui/react";
 // plane imports
-import { CheckIcon, SearchIcon } from "@plane/propel/icons";
+import { CheckIcon, ChevronDownIcon, SearchIcon } from "@plane/propel/icons";
+import { ComboDropDown } from "@plane/ui";
 import { cn } from "@plane/utils";
 // hooks
 import { useDropdown } from "@/hooks/use-dropdown";
 import { usePlatformOS } from "@/hooks/use-platform-os";
+// local imports
+import { DropdownButton } from "@/components/dropdowns/buttons";
 
 type Props = {
   value: string;
@@ -60,6 +62,12 @@ export const CustomFieldSelectInput = ({
     setIsOpen,
   });
 
+  useEffect(() => {
+    if (isOpen && !isMobile) {
+      inputRef.current && inputRef.current.focus();
+    }
+  }, [isOpen, isMobile]);
+
   const placeholder = fieldName ? `Add ${fieldName}` : "Add value";
 
   const filteredOptions =
@@ -83,43 +91,57 @@ export const CustomFieldSelectInput = ({
     }
   };
 
+  const comboButton = (
+    <button
+      ref={setReferenceElement}
+      type="button"
+      className={cn(
+        "clickable block h-full max-w-full outline-none",
+        {
+          "cursor-not-allowed text-secondary": disabled,
+          "cursor-pointer": !disabled,
+        }
+      )}
+      onClick={handleOnClick}
+      disabled={disabled}
+    >
+      <DropdownButton
+        className="text-11"
+        isActive={isOpen}
+        tooltipHeading={fieldName}
+        tooltipContent={value || placeholder}
+        showTooltip={false}
+        variant="transparent-with-text"
+        renderToolTipByDefault={false}
+      >
+        <span
+          className={cn(
+            "flex-grow truncate text-left text-body-xs-medium leading-5",
+            !value && "text-placeholder"
+          )}
+        >
+          {value || placeholder}
+        </span>
+        <ChevronDownIcon
+          className={cn("h-2.5 w-2.5 flex-shrink-0", isOpen ? "text-primary" : "")}
+          aria-hidden="true"
+        />
+      </DropdownButton>
+    </button>
+  );
+
   return (
-    <Combobox
+    <ComboDropDown
       as="div"
       ref={dropdownRef}
       value={value}
       onChange={handleSelect}
       disabled={disabled}
       onKeyDown={handleKeyDown}
-      className="group w-full grow"
+      className="h-full"
+      button={comboButton}
+      renderByDefault={true}
     >
-      <Combobox.Button as="div">
-        <button
-          ref={setReferenceElement}
-          type="button"
-          className={cn(
-            "clickable flex h-7.5 w-full items-center justify-between rounded-sm px-2 outline-none transition-colors",
-            "hover:bg-custom-background-80",
-            {
-              "cursor-not-allowed text-secondary": disabled,
-              "cursor-pointer": !disabled,
-            }
-          )}
-          onClick={handleOnClick}
-          disabled={disabled}
-        >
-          <span
-            className={cn(
-              "flex-grow truncate text-left text-body-xs-regular leading-5",
-              value ? "" : "text-placeholder"
-            )}
-          >
-            {value || placeholder}
-          </span>
-          <ChevronDown className="h-3.5 w-3.5 shrink-0 hidden group-hover:inline text-custom-text-300" />
-        </button>
-      </Combobox.Button>
-
       {isOpen &&
         createPortal(
           <Combobox.Options data-prevent-outside-click static>
@@ -141,7 +163,6 @@ export const CustomFieldSelectInput = ({
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search"
                   onKeyDown={searchInputKeyDown}
-                  autoFocus={!isMobile}
                 />
               </div>
               <div className="mt-2 max-h-48 space-y-1 overflow-y-scroll">
@@ -174,6 +195,6 @@ export const CustomFieldSelectInput = ({
           </Combobox.Options>,
           document.body
         )}
-    </Combobox>
+    </ComboDropDown>
   );
 };
