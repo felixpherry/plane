@@ -60,3 +60,9 @@ from .asset import (
 from .invite import WorkspaceInviteSerializer
 from .member import ProjectMemberSerializer
 from .sticky import StickySerializer
+from .custom_field import (
+    CustomFieldSerializer,
+    CustomFieldLiteSerializer,
+    CustomFieldValueSerializer,
+    CustomFieldValueCreateSerializer,
+)
