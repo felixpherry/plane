@@ -96,7 +96,7 @@ export const CustomFieldSelectInput = ({
       ref={setReferenceElement}
       type="button"
       className={cn(
-        "clickable block h-full max-w-full outline-none",
+        "clickable block h-full w-full max-w-full outline-none",
         {
           "cursor-not-allowed text-secondary": disabled,
           "cursor-pointer": !disabled,
@@ -106,7 +106,7 @@ export const CustomFieldSelectInput = ({
       disabled={disabled}
     >
       <DropdownButton
-        className="text-11"
+        className="w-full text-left text-13"
         isActive={isOpen}
         tooltipHeading={fieldName}
         tooltipContent={value || placeholder}
@@ -123,7 +123,7 @@ export const CustomFieldSelectInput = ({
           {value || placeholder}
         </span>
         <ChevronDownIcon
-          className={cn("h-2.5 w-2.5 flex-shrink-0", isOpen ? "text-primary" : "")}
+          className={cn("h-3.5 w-3.5 flex-shrink-0 hidden group-hover:inline", isOpen ? "text-primary" : "")}
           aria-hidden="true"
         />
       </DropdownButton>
@@ -138,7 +138,7 @@ export const CustomFieldSelectInput = ({
       onChange={handleSelect}
       disabled={disabled}
       onKeyDown={handleKeyDown}
-      className="h-full"
+      className="h-full w-full"
       button={comboButton}
       renderByDefault={true}
     >
