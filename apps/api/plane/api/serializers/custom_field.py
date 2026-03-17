@@ -73,6 +73,7 @@ class CustomFieldLiteSerializer(BaseSerializer):
             "field_type",
             "options",
             "is_required",
+            "is_active",
             "sort_order",
         ]
         read_only_fields = fields
