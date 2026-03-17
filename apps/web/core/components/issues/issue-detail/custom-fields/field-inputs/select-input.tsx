@@ -99,7 +99,7 @@ export const CustomFieldSelectInput = ({
           ref={setReferenceElement}
           type="button"
           className={cn(
-            "clickable block h-full max-w-full outline-none w-full",
+            "clickable flex h-7.5 w-full items-center rounded-sm px-2 outline-none hover:bg-custom-background-80 transition-colors",
             {
               "cursor-not-allowed text-secondary": disabled,
               "cursor-pointer": !disabled,
@@ -108,23 +108,14 @@ export const CustomFieldSelectInput = ({
           onClick={handleOnClick}
           disabled={disabled}
         >
-          <DropdownButton
-            className="text-11"
-            isActive={isOpen}
-            tooltipHeading={fieldName}
-            tooltipContent={value || placeholder}
-            showTooltip={false}
-            variant="transparent-with-text"
+          <span
+            className={cn(
+              "flex-grow truncate text-left text-body-xs-medium leading-5",
+              value ? "text-secondary" : "text-placeholder"
+            )}
           >
-            <span
-              className={cn(
-                "flex-grow truncate text-left text-body-xs-medium leading-5",
-                value ? "" : "text-placeholder"
-              )}
-            >
-              {value || placeholder}
-            </span>
-          </DropdownButton>
+            {value || placeholder}
+          </span>
         </button>
       </Combobox.Button>
 

@@ -53,15 +53,51 @@ export const CustomFieldsSection = ({ workspaceSlug, projectId, issueId, disable
 
   const handleValueChange = useCallback(
     async (fieldId: string, newValue: unknown) => {
+      // Optimistic update — update state immediately
+      setValues((prev) => {
+        const existingIndex = prev.findIndex((v) => v.custom_field === fieldId);
+        if (existingIndex >= 0) {
+          // Update existing value
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            value: newValue,
+          };
+          return updated;
+        } else {
+          // Add new value entry
+          return [
+            ...prev,
+            {
+              id: `temp-${fieldId}`,
+              custom_field: fieldId,
+              value: newValue,
+              issue: issueId,
+              workspace: "",
+              project: "",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              deleted_at: null,
+              created_by: "",
+              updated_by: null,
+            } as ICustomFieldValue,
+          ];
+        }
+      });
+
       try {
+        // Send to API in background
         await customFieldService.setValues(workspaceSlug, projectId, issueId, [
           { custom_field: fieldId, value: newValue },
         ]);
-        // Re-fetch values after update
+        // Silently sync real data from server
         const updatedValues = await customFieldService.listValues(workspaceSlug, projectId, issueId);
         setValues(updatedValues);
       } catch (error) {
         console.error("Failed to update custom field value:", error);
+        // Revert on error — re-fetch original values
+        const originalValues = await customFieldService.listValues(workspaceSlug, projectId, issueId);
+        setValues(originalValues);
       }
     },
     [workspaceSlug, projectId, issueId]
@@ -74,7 +110,7 @@ export const CustomFieldsSection = ({ workspaceSlug, projectId, issueId, disable
   return (
     <>
       <h6 className="mt-5 mb-2 text-body-xs-medium">Custom Properties</h6>
-      <div className="space-y-2.5">
+      <div className="space-y-0">
         {activeFields.map((field) => (
           <CustomFieldProperty
             key={field.id}
