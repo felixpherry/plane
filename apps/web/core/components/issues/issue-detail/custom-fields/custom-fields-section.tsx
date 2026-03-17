@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import useSWR from "swr";
 import type { ICustomField, ICustomFieldValue } from "@plane/types";
 import { CustomFieldService } from "@plane/services";
 import { CustomFieldProperty } from "./custom-field-property";
@@ -16,28 +15,41 @@ type Props = {
 };
 
 export const CustomFieldsSection = ({ workspaceSlug, projectId, issueId, disabled = false }: Props) => {
-  // Fetch custom field definitions for this project
-  const { data: fields, isLoading: fieldsLoading } = useSWR(
-    workspaceSlug && projectId ? `CUSTOM_FIELDS_${workspaceSlug}_${projectId}` : null,
-    () => customFieldService.listFields(workspaceSlug, projectId)
-  );
+  const [fields, setFields] = useState<ICustomField[]>([]);
+  const [values, setValues] = useState<ICustomFieldValue[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch custom field values for this issue
-  const { data: values, mutate: mutateValues, isLoading: valuesLoading } = useSWR(
-    workspaceSlug && projectId && issueId ? `CUSTOM_FIELD_VALUES_${workspaceSlug}_${projectId}_${issueId}` : null,
-    () => customFieldService.listValues(workspaceSlug, projectId, issueId)
-  );
+  // Fetch custom field definitions and values
+  const fetchData = useCallback(async () => {
+    if (!workspaceSlug || !projectId || !issueId) return;
+
+    try {
+      setIsLoading(true);
+      const [fieldsRes, valuesRes] = await Promise.all([
+        customFieldService.listFields(workspaceSlug, projectId),
+        customFieldService.listValues(workspaceSlug, projectId, issueId),
+      ]);
+      setFields(fieldsRes);
+      setValues(valuesRes);
+    } catch (error) {
+      console.error("Failed to fetch custom fields:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [workspaceSlug, projectId, issueId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Only show active fields
-  const activeFields = fields?.filter((f: ICustomField) => f.is_active) || [];
+  const activeFields = fields.filter((f) => f.is_active);
 
   // Build a lookup: custom_field id -> value object
   const valueMap = new Map<string, ICustomFieldValue>();
-  if (values) {
-    values.forEach((v: ICustomFieldValue) => {
-      valueMap.set(v.custom_field, v);
-    });
-  }
+  values.forEach((v) => {
+    valueMap.set(v.custom_field, v);
+  });
 
   const handleValueChange = useCallback(
     async (fieldId: string, newValue: unknown) => {
@@ -45,23 +57,25 @@ export const CustomFieldsSection = ({ workspaceSlug, projectId, issueId, disable
         await customFieldService.setValues(workspaceSlug, projectId, issueId, [
           { custom_field: fieldId, value: newValue },
         ]);
-        mutateValues();
+        // Re-fetch values after update
+        const updatedValues = await customFieldService.listValues(workspaceSlug, projectId, issueId);
+        setValues(updatedValues);
       } catch (error) {
         console.error("Failed to update custom field value:", error);
       }
     },
-    [workspaceSlug, projectId, issueId, mutateValues]
+    [workspaceSlug, projectId, issueId]
   );
 
-  // Don't render section if no active custom fields
-  if (fieldsLoading || valuesLoading) return null;
+  // Don't render section if loading or no active custom fields
+  if (isLoading) return null;
   if (activeFields.length === 0) return null;
 
   return (
     <>
       <h5 className="mt-5 mb-2 text-body-xs-medium text-tertiary">Custom Properties</h5>
       <div className="space-y-2.5">
-        {activeFields.map((field: ICustomField) => (
+        {activeFields.map((field) => (
           <CustomFieldProperty
             key={field.id}
             field={field}
