@@ -3,7 +3,6 @@
 import { useCallback } from "react";
 import { Type, Hash, List, Calendar, CheckSquare, Link2 } from "lucide-react";
 import type { ICustomField, ICustomFieldValue } from "@plane/types";
-import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 import {
   CustomFieldTextInput,
   CustomFieldNumberInput,
@@ -106,8 +105,14 @@ export const CustomFieldProperty = ({ field, value, onValueChange, disabled = fa
   };
 
   return (
-    <SidebarPropertyListItem icon={Icon} label={field.name}>
-      {renderInput()}
-    </SidebarPropertyListItem>
+    <div className="flex h-8 items-center gap-2">
+      <div className="flex w-2/5 flex-shrink-0 items-center gap-1 text-13 text-tertiary">
+        <Icon className="h-4 w-4 flex-shrink-0" />
+        <span>{field.name}</span>
+      </div>
+      <div className="group w-3/5 flex-grow">
+        {renderInput()}
+      </div>
+    </div>
   );
 };
