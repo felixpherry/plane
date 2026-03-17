@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-"use client";
-
 import { observer } from "mobx-react";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
@@ -19,9 +17,10 @@ import { CustomFieldSettings } from "@/components/settings/project/content/custo
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 // local imports
+import type { Route } from "./+types/page";
 import { FeaturesCustomFieldsProjectSettingsHeader } from "./header";
 
-function FeaturesCustomFieldsSettingsPage({ params }: { params: { workspaceSlug: string; projectId: string } }) {
+function FeaturesCustomFieldsSettingsPage({ params }: Route.ComponentProps) {
   const { workspaceSlug, projectId } = params;
   // store hooks
   const { workspaceUserInfo, allowPermissions } = useUserPermissions();
@@ -30,22 +29,36 @@ function FeaturesCustomFieldsSettingsPage({ params }: { params: { workspaceSlug:
   const pageTitle = currentProjectDetails?.name
     ? `${currentProjectDetails?.name} settings - Custom Fields`
     : undefined;
-  const canPerformProjectAdminActions = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT);
+  const canPerformProjectAdminActions = allowPermissions(
+    [EUserPermissions.ADMIN],
+    EUserPermissionsLevel.PROJECT
+  );
 
   if (workspaceUserInfo && !canPerformProjectAdminActions) {
-    return <NotAuthorizedView section="settings" isProjectView className="h-auto" />;
+    return (
+      <NotAuthorizedView
+        section="settings"
+        isProjectView
+        className="h-auto"
+      />
+    );
   }
 
   return (
-    <SettingsContentWrapper header={<FeaturesCustomFieldsProjectSettingsHeader />}>
+    <SettingsContentWrapper
+      header={<FeaturesCustomFieldsProjectSettingsHeader />}
+    >
       <PageHead title={pageTitle} />
       <section className="w-full">
         <SettingsHeading
           title="Custom Fields"
-          description="Define custom properties for work items in this project. These fields will appear in the work item detail sidebar."
+          description="Define custom properties for work items in this project. Fields you create here will appear in the work item detail sidebar."
         />
         <div className="mt-7">
-          <CustomFieldSettings workspaceSlug={workspaceSlug} projectId={projectId} />
+          <CustomFieldSettings
+            workspaceSlug={workspaceSlug}
+            projectId={projectId}
+          />
         </div>
       </section>
     </SettingsContentWrapper>
