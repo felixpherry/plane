@@ -108,9 +108,9 @@ export const CustomFieldsSection = ({ workspaceSlug, projectId, issueId, disable
   if (activeFields.length === 0) return null;
 
   return (
-    <>
-      <h5 className="mt-5 text-body-xs-medium">Custom Properties</h5>
-      <div className="mt-4 mb-2 space-y-2.5">
+    <div className="w-full overflow-y-auto">
+      <h5 className="mb-2 text-body-sm-medium">Custom Properties</h5>
+      <div className="flex flex-col gap-3">
         {activeFields.map((field) => (
           <CustomFieldProperty
             key={field.id}
@@ -121,6 +121,6 @@ export const CustomFieldsSection = ({ workspaceSlug, projectId, issueId, disable
           />
         ))}
       </div>
-    </>
+    </div>
   );
 };
