@@ -38,6 +38,10 @@ class CustomField(WorkspaceBaseModel):
         help_text="Options for select/multi_select fields. e.g. ['Engineering', 'HR', 'Finance']",
     )
     is_required = models.BooleanField(default=False)
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this custom field is active. Disabled fields are hidden from the issue sidebar.",
+    )
     sort_order = models.FloatField(default=65535)
 
     class Meta:
