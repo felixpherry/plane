@@ -73,7 +73,7 @@ export const CustomFieldsSection = ({ workspaceSlug, projectId, issueId, disable
 
   return (
     <>
-      <h5 className="mt-5 mb-2 text-body-xs-medium text-tertiary">Custom Properties</h5>
+      <h6 className="mt-5 mb-2 text-body-xs-medium">Custom Properties</h6>
       <div className="space-y-2.5">
         {activeFields.map((field) => (
           <CustomFieldProperty
