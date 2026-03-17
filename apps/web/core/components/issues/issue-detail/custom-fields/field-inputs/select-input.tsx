@@ -1,8 +1,17 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Popover } from "@headlessui/react";
-import { Check, Search } from "lucide-react";
+import { useRef, useState } from "react";
+import { Combobox } from "@headlessui/react";
+import { createPortal } from "react-dom";
+import { usePopper } from "react-popper";
+// plane imports
+import { CheckIcon, SearchIcon } from "@plane/propel/icons";
+import { cn } from "@plane/utils";
+// hooks
+import { useDropdown } from "@/hooks/use-dropdown";
+import { usePlatformOS } from "@/hooks/use-platform-os";
+// components
+import { DropdownButton } from "@/components/dropdowns/buttons";
 
 type Props = {
   value: string;
@@ -19,81 +28,160 @@ export const CustomFieldSelectInput = ({
   disabled = false,
   fieldName = "",
 }: Props) => {
+  // refs
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  // states
+  const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  // popper refs
+  const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | null>(null);
+  const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
+  // hooks
+  const { isMobile } = usePlatformOS();
+  // popper-js
+  const { styles, attributes } = usePopper(referenceElement, popperElement, {
+    placement: "bottom-start",
+    modifiers: [
+      {
+        name: "preventOverflow",
+        options: {
+          padding: 12,
+        },
+      },
+    ],
+  });
 
-  const filteredOptions = query
-    ? options.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
-    : options;
-
-  const handleSelect = (option: string) => {
-    // Toggle: clicking selected item deselects it
-    if (value === option) {
-      onChange("");
-    } else {
-      onChange(option);
-    }
-    // Keep popover open — don't close
-  };
+  const { handleClose, handleKeyDown, handleOnClick } = useDropdown({
+    dropdownRef,
+    isOpen,
+    onClose: () => {
+      setQuery("");
+    },
+    setIsOpen,
+  });
 
   const placeholder = fieldName ? `Add ${fieldName}` : "Add value";
 
+  const filteredOptions =
+    query === ""
+      ? options
+      : options.filter((o) => o.toLowerCase().includes(query.toLowerCase()));
+
+  const handleSelect = (val: string) => {
+    // Toggle: clicking selected item deselects it
+    if (value === val) {
+      onChange("");
+    } else {
+      onChange(val);
+    }
+  };
+
+  const searchInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (query !== "" && e.key === "Escape") {
+      e.stopPropagation();
+      setQuery("");
+    }
+  };
+
   return (
-    <Popover className="relative w-full grow">
-      {({ open }) => (
-        <>
-          <Popover.Button
-            disabled={disabled}
-            className="flex h-7.5 w-full items-center text-left text-body-xs-regular outline-none px-2 rounded-sm hover:bg-custom-background-80 transition-colors"
+    <Combobox
+      as="div"
+      ref={dropdownRef}
+      value={value}
+      onChange={handleSelect}
+      disabled={disabled}
+      onKeyDown={handleKeyDown}
+      className="h-full w-full grow"
+    >
+      <Combobox.Button as="div">
+        <button
+          ref={setReferenceElement}
+          type="button"
+          className={cn(
+            "clickable block h-full max-w-full outline-none w-full",
+            {
+              "cursor-not-allowed text-secondary": disabled,
+              "cursor-pointer": !disabled,
+            }
+          )}
+          onClick={handleOnClick}
+          disabled={disabled}
+        >
+          <DropdownButton
+            className="text-11"
+            isActive={isOpen}
+            tooltipHeading={fieldName}
+            tooltipContent={value || placeholder}
+            showTooltip={false}
+            variant="transparent-with-text"
           >
-            <span className={value ? "" : "text-placeholder"}>
+            <span
+              className={cn(
+                "flex-grow truncate text-left text-body-xs-medium leading-5",
+                value ? "" : "text-placeholder"
+              )}
+            >
               {value || placeholder}
             </span>
-          </Popover.Button>
+          </DropdownButton>
+        </button>
+      </Combobox.Button>
 
-          <Popover.Panel
-            className="absolute right-0 z-20 mt-1 w-48 rounded-md border border-custom-border-200 bg-custom-background-100 shadow-custom-shadow-rg p-1"
-          >
-            <div className="flex items-center gap-1.5 rounded-sm border border-custom-border-200 bg-custom-background-90 px-2 py-1 mb-1">
-              <Search className="h-3 w-3 text-custom-text-300" />
-              <input
-                ref={inputRef}
-                type="text"
-                className="w-full bg-transparent text-xs text-custom-text-200 placeholder-custom-text-400 outline-none"
-                placeholder="Search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="max-h-48 overflow-y-auto">
-              {filteredOptions.length === 0 ? (
-                <p className="text-xs text-custom-text-400 px-2 py-1.5">
-                  No matches
-                </p>
-              ) : (
-                filteredOptions.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    className="flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-xs text-custom-text-200 hover:bg-custom-background-80 transition-colors"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleSelect(option);
-                    }}
-                  >
-                    <span>{option}</span>
-                    {value === option && (
-                      <Check className="h-3 w-3 text-custom-primary-100 shrink-0" />
-                    )}
-                  </button>
-                ))
+      {isOpen &&
+        createPortal(
+          <Combobox.Options data-prevent-outside-click static>
+            <div
+              className={cn(
+                "z-30 my-1 w-48 rounded-sm border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 text-11 shadow-raised-200 focus:outline-none"
               )}
+              ref={setPopperElement}
+              style={{ ...styles.popper }}
+              {...attributes.popper}
+            >
+              <div className="flex items-center gap-1.5 rounded-sm border border-subtle bg-surface-2 px-2">
+                <SearchIcon className="h-3.5 w-3.5 text-placeholder" strokeWidth={1.5} />
+                <Combobox.Input
+                  as="input"
+                  ref={inputRef}
+                  className="w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search"
+                  onKeyDown={searchInputKeyDown}
+                  autoFocus={!isMobile}
+                />
+              </div>
+              <div className="mt-2 max-h-48 space-y-1 overflow-y-scroll">
+                {filteredOptions.length > 0 ? (
+                  filteredOptions.map((option) => (
+                    <Combobox.Option
+                      key={option}
+                      value={option}
+                      className={({ active }) =>
+                        cn(
+                          "flex w-full items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 cursor-pointer select-none",
+                          active && "bg-layer-transparent-hover",
+                          value === option ? "text-primary" : "text-secondary"
+                        )
+                      }
+                    >
+                      <span className="flex-grow truncate">{option}</span>
+                      {value === option && (
+                        <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                      )}
+                    </Combobox.Option>
+                  ))
+                ) : (
+                  <p className="px-1.5 py-1 text-placeholder italic">
+                    No matching results
+                  </p>
+                )}
+              </div>
             </div>
-          </Popover.Panel>
-        </>
-      )}
-    </Popover>
+          </Combobox.Options>,
+          document.body
+        )}
+    </Combobox>
   );
 };
