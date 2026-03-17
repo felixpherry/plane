@@ -67,6 +67,7 @@ export const CustomFieldProperty = ({ field, value, onValueChange, disabled = fa
             options={field.options || []}
             onChange={handleChange as (v: string) => void}
             disabled={disabled}
+            fieldName={field.name}
           />
         );
       case "date":
