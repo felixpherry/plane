@@ -1,71 +1,70 @@
-"use client";
+'use client';
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from 'react';
+import { Input } from '@plane/ui';
 
 type Props = {
   value: number | null;
   onChange: (value: number | null) => void;
   disabled?: boolean;
-  placeholder?: string;
 };
 
-export const CustomFieldNumberInput = ({ value, onChange, disabled = false, placeholder = "Enter number..." }: Props) => {
-  const [localValue, setLocalValue] = useState(value !== null && value !== undefined ? String(value) : "");
+export const CustomFieldNumberInput = ({
+  value,
+  onChange,
+  disabled = false,
+}: Props) => {
+  const [localValue, setLocalValue] = useState(value?.toString() ?? '');
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setLocalValue(value !== null && value !== undefined ? String(value) : "");
-  }, [value]);
-
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isEditing]);
-
-  const handleBlur = () => {
+  const handleSubmit = () => {
     setIsEditing(false);
-    const numVal = localValue === "" ? null : Number(localValue);
-    if (numVal !== value) {
-      onChange(numVal);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleBlur();
-    if (e.key === "Escape") {
-      setLocalValue(value !== null && value !== undefined ? String(value) : "");
-      setIsEditing(false);
+    const numValue = localValue === '' ? null : Number(localValue);
+    if (numValue !== value) {
+      onChange(numValue);
     }
   };
 
   if (!isEditing) {
     return (
       <button
-        type="button"
-        onClick={() => !disabled && setIsEditing(true)}
-        className="flex h-7.5 w-full items-center truncate rounded px-2 text-left text-body-xs-regular hover:bg-subtle-2 transition-colors"
+        type='button'
+        className='flex h-7.5 w-full items-center truncate rounded-sm px-1.5 text-body-xs-medium hover:bg-custom-background-80 transition-colors'
+        onClick={() => {
+          if (!disabled) {
+            setIsEditing(true);
+            setTimeout(() => inputRef.current?.focus(), 0);
+          }
+        }}
         disabled={disabled}
       >
-        <span className={localValue ? "text-primary" : "text-placeholder"}>
-          {localValue || placeholder}
+        <span className={value !== null ? '' : 'text-placeholder'}>
+          {value !== null ? value : 'Add number'}
         </span>
       </button>
     );
   }
 
   return (
-    <input
+    <Input
       ref={inputRef}
-      type="number"
+      type='number'
+      mode='transparent'
+      inputSize='xs'
+      className='w-full text-body-xs-medium'
       value={localValue}
       onChange={(e) => setLocalValue(e.target.value)}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
-      placeholder={placeholder}
+      onBlur={handleSubmit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') handleSubmit();
+        if (e.key === 'Escape') {
+          setLocalValue(value?.toString() ?? '');
+          setIsEditing(false);
+        }
+      }}
+      autoFocus
       disabled={disabled}
-      className="h-7.5 w-full rounded border border-subtle-3 bg-transparent px-2 text-body-xs-regular text-primary outline-none focus:border-primary transition-colors"
     />
   );
 };
