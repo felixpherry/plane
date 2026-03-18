@@ -61,18 +61,36 @@ export const CustomFieldProperty = ({ field, value, onValueChange, disabled = fa
           />
         );
       case "select":
-      case "multi_select":
         return (
           <CustomFieldSelectInput
             value={(currentValue as string) || ""}
             options={field.options || []}
-            onChange={handleChange as (v: string) => void}
+            onChange={handleChange}
             disabled={disabled}
             fieldName={field.name}
             buttonVariant="transparent-with-text"
             className="group w-full grow"
             buttonContainerClassName="w-full text-left h-7.5"
             buttonClassName={`text-body-xs-medium ${currentValue ? "" : "text-placeholder"}`}
+            dropdownArrow
+            dropdownArrowClassName="h-3.5 w-3.5 hidden group-hover:inline"
+          />
+        );
+      case "multi_select":
+        return (
+          <CustomFieldSelectInput
+            value={(currentValue as string[]) || []}
+            options={field.options || []}
+            onChange={handleChange}
+            disabled={disabled}
+            fieldName={field.name}
+            multiple
+            buttonVariant="transparent-with-text"
+            className="group w-full grow"
+            buttonContainerClassName="w-full text-left h-7.5"
+            buttonClassName={`text-body-xs-medium ${
+              Array.isArray(currentValue) && currentValue.length > 0 ? "" : "text-placeholder"
+            }`}
             dropdownArrow
             dropdownArrowClassName="h-3.5 w-3.5 hidden group-hover:inline"
           />

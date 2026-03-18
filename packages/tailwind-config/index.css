@@ -5,26 +5,39 @@
 @source "../../packages/ui/src/**/*.{js,ts,jsx,tsx}";
 
 @theme inline {
-  /* Success */
-  --color-green-50: rgba(34, 197, 94, 0.1);
-  --color-green-100: rgba(34, 197, 94, 0.2);
-  --color-green-300: #86efac;
-  --color-green-500: #22c55e;
-  --color-green-600: #16a34a;
+  /* ... existing green/red/amber ... */
 
-  /* Danger */
-  --color-red-50: rgba(239, 68, 68, 0.1);
-  --color-red-100: rgba(239, 68, 68, 0.2);
-  --color-red-300: #fca5a5;
-  --color-red-500: #ef4444;
-  --color-red-600: #dc2626;
+  --color-blue-100: rgba(59, 130, 246, 0.15);
+  --color-blue-200: rgba(59, 130, 246, 0.25);
+  --color-blue-600: #2563eb;
 
-  /* Warning */
-  --color-amber-50: rgba(245, 158, 11, 0.1);
-  --color-amber-100: rgba(245, 158, 11, 0.2);
-  --color-amber-300: #fcd34d;
-  --color-amber-500: #f59e0b;
-  --color-amber-600: #d97706;
+  --color-purple-100: rgba(147, 51, 234, 0.15);
+  --color-purple-200: rgba(147, 51, 234, 0.25);
+  --color-purple-600: #9333ea;
+
+  --color-teal-100: rgba(20, 184, 166, 0.15);
+  --color-teal-200: rgba(20, 184, 166, 0.25);
+  --color-teal-600: #0d9488;
+
+  --color-pink-100: rgba(236, 72, 153, 0.15);
+  --color-pink-200: rgba(236, 72, 153, 0.25);
+  --color-pink-600: #db2777;
+
+  --color-orange-100: rgba(249, 115, 22, 0.15);
+  --color-orange-200: rgba(249, 115, 22, 0.25);
+  --color-orange-600: #ea580c;
+
+  --color-indigo-100: rgba(99, 102, 241, 0.15);
+  --color-indigo-200: rgba(99, 102, 241, 0.25);
+  --color-indigo-600: #4f46e5;
+
+  --color-emerald-100: rgba(16, 185, 129, 0.15);
+  --color-emerald-200: rgba(16, 185, 129, 0.25);
+  --color-emerald-600: #059669;
+
+  --color-rose-100: rgba(244, 63, 94, 0.15);
+  --color-rose-200: rgba(244, 63, 94, 0.25);
+  --color-rose-600: #e11d48;
 }
 
 * {
