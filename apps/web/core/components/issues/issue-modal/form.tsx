@@ -17,7 +17,7 @@ import type { EditorRefApi } from "@plane/editor";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TIssue, TWorkspaceDraftIssue } from "@plane/types";
+import type { ICustomField, TIssue, TWorkspaceDraftIssue } from "@plane/types";
 // hooks
 import { ToggleSwitch } from "@plane/ui";
 import {
@@ -174,6 +174,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
   const isDisabled = isSubmitting || isApplyingTemplate;
 
   const { getIndex } = getTabIndex(ETabIndices.ISSUE_FORM, isMobile);
+  // Fetch custom fields for validation
 
   //reset few fields on projectId change
   useEffect(() => {
@@ -191,6 +192,18 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
+
+  useEffect(() => {
+    if (!workspaceSlug || !projectId) {
+      setCustomFields([]);
+      return;
+    }
+    const customFieldService = new CustomFieldService();
+    customFieldService
+      .listFields(workspaceSlug.toString(), projectId)
+      .then((fields) => setCustomFields(fields.filter((f) => f.is_active)))
+      .catch(() => setCustomFields([]));
+  }, [workspaceSlug, projectId]);
 
   // Reset form when data prop changes
   useEffect(() => {
@@ -228,77 +241,6 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workItemTemplateId]);
-
-  const handleFormSubmit = async (formData: Partial<TIssue>, is_draft_issue = false) => {
-    // Check if the editor is ready to discard
-    if (!editorRef.current?.isEditorReadyToDiscard()) {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: t("error"),
-        message: t("editor_is_not_ready_to_discard_changes"),
-      });
-      return;
-    }
-
-    // check for required properties validation
-    if (
-      !handlePropertyValuesValidation({
-        projectId: projectId,
-        workspaceSlug: workspaceSlug?.toString(),
-        watch: watch,
-      })
-    )
-      return;
-
-    const submitData = !data?.id
-      ? formData
-      : {
-          ...getChangedIssuefields(formData, dirtyFields as { [key: string]: boolean | undefined }),
-          project_id: getValues<"project_id">("project_id"),
-          id: data.id,
-          description_html: formData.description_html ?? "<p></p>",
-          type_id: getValues<"type_id">("type_id"),
-        };
-
-    // this condition helps to move the issues from draft to project issues
-    if (formData.hasOwnProperty("is_draft")) submitData.is_draft = formData.is_draft;
-
-    await onSubmit(submitData, is_draft_issue)
-      .then(async () => {
-        // Save custom field values if any were set
-        if (Object.keys(customFieldValues).length > 0 && projectId) {
-          try {
-            // Get the created issue ID — it was just created so we need to find it
-            // For now, we'll save values after creation from the issue detail
-            // TODO: Pass created issue ID back from onSubmit to save custom fields inline
-          } catch (error) {
-            console.error("Failed to save custom field values:", error);
-          }
-        }
-
-        setCustomFieldValues({});
-        setGptAssistantModal(false);
-        if (isCreateMoreToggleEnabled && workItemTemplateId) {
-          handleTemplateChange({
-            workspaceSlug: workspaceSlug?.toString(),
-            reset,
-            editorRef,
-          });
-        } else {
-          reset({
-            ...DEFAULT_WORK_ITEM_FORM_VALUES,
-            ...(isCreateMoreToggleEnabled ? { ...data } : {}),
-            project_id: getValues<"project_id">("project_id"),
-            type_id: getValues<"type_id">("type_id"),
-            description_html: data?.description_html ?? "<p></p>",
-          });
-          editorRef?.current?.clearEditor();
-        }
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  };
 
   const handleMoveToProjects = async () => {
     if (!data?.id || !data?.project_id || !data) return;
@@ -396,6 +338,125 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
 
   // TODO: Remove this after the de-dupe feature is implemented
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
+
+  const [customFields, setCustomFields] = useState<ICustomField[]>([]);
+  const handleFormSubmit = async (formData: Partial<TIssue>, is_draft_issue = false) => {
+    // Check if the editor is ready to discard
+    if (!editorRef.current?.isEditorReadyToDiscard()) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("error"),
+        message: t("editor_is_not_ready_to_discard_changes"),
+      });
+      return;
+    }
+
+    // check for required properties validation
+    if (
+      !handlePropertyValuesValidation({
+        projectId: projectId,
+        workspaceSlug: workspaceSlug?.toString(),
+        watch: watch,
+      })
+    )
+      return;
+
+    // check for required custom fields validation
+    if (!validateCustomFields()) return;
+
+    // ... rest stays the same
+
+    // check for required properties validation
+    if (
+      !handlePropertyValuesValidation({
+        projectId: projectId,
+        workspaceSlug: workspaceSlug?.toString(),
+        watch: watch,
+      })
+    )
+      return;
+
+    const submitData = !data?.id
+      ? formData
+      : {
+          ...getChangedIssuefields(formData, dirtyFields as { [key: string]: boolean | undefined }),
+          project_id: getValues<"project_id">("project_id"),
+          id: data.id,
+          description_html: formData.description_html ?? "<p></p>",
+          type_id: getValues<"type_id">("type_id"),
+        };
+
+    // this condition helps to move the issues from draft to project issues
+    if (formData.hasOwnProperty("is_draft")) submitData.is_draft = formData.is_draft;
+
+    await onSubmit(submitData, is_draft_issue)
+      .then(async () => {
+        // Save custom field values if any were set
+        if (Object.keys(customFieldValues).length > 0 && projectId) {
+          try {
+            // Get the created issue ID — it was just created so we need to find it
+            // For now, we'll save values after creation from the issue detail
+            // TODO: Pass created issue ID back from onSubmit to save custom fields inline
+          } catch (error) {
+            console.error("Failed to save custom field values:", error);
+          }
+        }
+
+        setCustomFieldValues({});
+        setGptAssistantModal(false);
+        if (isCreateMoreToggleEnabled && workItemTemplateId) {
+          handleTemplateChange({
+            workspaceSlug: workspaceSlug?.toString(),
+            reset,
+            editorRef,
+          });
+        } else {
+          reset({
+            ...DEFAULT_WORK_ITEM_FORM_VALUES,
+            ...(isCreateMoreToggleEnabled ? { ...data } : {}),
+            project_id: getValues<"project_id">("project_id"),
+            type_id: getValues<"type_id">("type_id"),
+            description_html: data?.description_html ?? "<p></p>",
+          });
+          editorRef?.current?.clearEditor();
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
+
+  const validateCustomFields = useCallback((): boolean => {
+    const mandatoryFields = customFields.filter((f) => f.is_required);
+    const missingFields: string[] = [];
+
+    for (const field of mandatoryFields) {
+      const value = customFieldValues[field.id];
+
+      const isEmpty =
+        value === undefined ||
+        value === null ||
+        value === "" ||
+        (Array.isArray(value) && value.length === 0) ||
+        value === false;
+
+      if (isEmpty) {
+        missingFields.push(field.name);
+      }
+    }
+
+    if (missingFields.length > 0) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("error"),
+        message: `Required custom fields missing: ${missingFields.join(", ")}`,
+      });
+      return false;
+    }
+
+    return true;
+  }, [customFields, customFieldValues, t]);
+
   const handleCustomFieldChange = useCallback(
     (fieldId: string, value: unknown) => {
       setCustomFieldValues((prev) => ({ ...prev, [fieldId]: value }));
