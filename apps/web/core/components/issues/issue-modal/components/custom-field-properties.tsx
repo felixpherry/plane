@@ -48,7 +48,7 @@ const InlineFieldInput = ({
     <Popover className="relative h-full">
       {({ close }) => (
         <>
-          <Popover.Button className="flex h-full cursor-pointer items-center justify-between gap-1 rounded-sm border-[0.5px] border-strong px-2 py-0.5 text-caption-sm-regular hover:bg-layer-1">
+          <Popover.Button className="text-custom-text-100 flex h-full cursor-pointer items-center justify-between gap-1 rounded-sm border-[0.5px] border-strong px-2 py-0.5 text-caption-sm-regular hover:bg-layer-1">
             <Icon className="h-3 w-3 shrink-0" />
             <span className="whitespace-nowrap">
               {value ? <span className="inline-block max-w-24 truncate">{value}</span> : `Add ${label}`}
@@ -126,6 +126,8 @@ export const CustomFieldProperties = ({ workspaceSlug, projectId, customFieldVal
                   onChange={(val) => onCustomFieldChange(field.id, val)}
                   fieldName={field.name}
                   buttonVariant="border-with-text"
+                  buttonClassName="text-caption-sm-regular text-custom-text-100"
+                  prependIcon={<List className="h-3 w-3" />}
                 />
               </div>
             );
@@ -140,6 +142,8 @@ export const CustomFieldProperties = ({ workspaceSlug, projectId, customFieldVal
                   fieldName={field.name}
                   multiple
                   buttonVariant="border-with-text"
+                  buttonClassName="text-caption-sm-regular text-custom-text-100"
+                  prependIcon={<List className="h-3 w-3" />}
                 />
               </div>
             );
@@ -163,7 +167,7 @@ export const CustomFieldProperties = ({ workspaceSlug, projectId, customFieldVal
               <div key={field.id} className="h-7">
                 <button
                   type="button"
-                  className="flex h-full cursor-pointer items-center justify-between gap-1 rounded-sm border-[0.5px] border-strong px-2 py-0.5 text-caption-sm-regular hover:bg-layer-1"
+                  className="text-custom-text-100 flex h-full cursor-pointer items-center justify-between gap-1 rounded-sm border-[0.5px] border-strong px-2 py-0.5 text-caption-sm-regular hover:bg-layer-1"
                   onClick={() => onCustomFieldChange(field.id, !value)}
                 >
                   <CheckSquare className="h-3 w-3 shrink-0" />

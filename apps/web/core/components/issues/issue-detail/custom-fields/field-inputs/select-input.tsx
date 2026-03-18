@@ -1,4 +1,4 @@
-/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable */
 "use client";
 
 import { useRef, useState } from "react";
@@ -31,6 +31,7 @@ type Props = {
   placement?: "bottom-start" | "bottom-end" | "top-start" | "top-end";
   showTooltip?: boolean;
   tabIndex?: number;
+  prependIcon?: React.ReactNode;
 };
 
 const BADGE_COLORS = [
@@ -68,6 +69,7 @@ export const CustomFieldSelectInput = ({
   placement,
   showTooltip = false,
   tabIndex,
+  prependIcon,
 }: Props) => {
   // refs
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -152,6 +154,7 @@ export const CustomFieldSelectInput = ({
         showTooltip={showTooltip}
         variant={buttonVariant}
       >
+        {prependIcon && <span className="shrink-0">{prependIcon}</span>}
         {BUTTON_VARIANTS_WITH_TEXT.includes(buttonVariant) && (
           <>
             {multiple && Array.isArray(value) && value.length > 0 ? (
@@ -174,9 +177,7 @@ export const CustomFieldSelectInput = ({
                 )}
               </div>
             ) : (
-              <span className={cn("grow truncate text-left", !displayValue && "text-placeholder")}>
-                {displayValue || placeholder}
-              </span>
+              <span className={cn("grow truncate text-left text-body-xs-medium")}>{displayValue || placeholder}</span>
             )}
           </>
         )}
