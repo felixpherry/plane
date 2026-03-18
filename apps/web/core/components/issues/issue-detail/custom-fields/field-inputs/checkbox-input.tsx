@@ -10,6 +10,12 @@ type Props = {
 
 export const CustomFieldCheckboxInput = ({ value, onChange, disabled = false }: Props) => (
   <div className="flex h-7.5 items-center px-1.5">
-    <Checkbox checked={value} onChange={() => onChange(!value)} disabled={disabled} />
+    <Checkbox
+      checked={value}
+      onChange={() => {
+        if (!disabled) onChange(!value);
+      }}
+      disabled={disabled}
+    />
   </div>
 );

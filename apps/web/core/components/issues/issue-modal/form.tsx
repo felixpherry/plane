@@ -52,6 +52,7 @@ import { IssueTypeSelect, WorkItemTemplateSelect } from "@/plane-web/components/
 import { WorkItemModalAdditionalProperties } from "@/plane-web/components/issues/issue-modal/modal-additional-properties";
 import { useDebouncedDuplicateIssues } from "@/plane-web/hooks/use-debounced-duplicate-issues";
 import { CustomFieldService } from "@plane/services";
+import { CustomFieldProperties } from "./components/custom-field-properties";
 
 export interface IssueFormProps {
   data?: Partial<TIssue>;
@@ -523,7 +524,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                 activeAdditionalPropertiesLength > 0 && "shadow-raised-100"
               )}
             >
-              <div className="pb-3">
+              <div className="flex flex-col gap-2 pb-3">
                 <IssueDefaultProperties
                   control={control}
                   id={data?.id}
@@ -536,9 +537,15 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                   isDraft={isDraft}
                   handleFormChange={handleFormChange}
                   setSelectedParentIssue={setSelectedParentIssue}
-                  customFieldValues={customFieldValues}
-                  onCustomFieldChange={handleCustomFieldChange}
                 />
+                {projectId && workspaceSlug && (
+                  <CustomFieldProperties
+                    workspaceSlug={workspaceSlug}
+                    projectId={projectId}
+                    customFieldValues={customFieldValues}
+                    onCustomFieldChange={handleCustomFieldChange}
+                  />
+                )}
               </div>
               {showActionButtons && (
                 <div

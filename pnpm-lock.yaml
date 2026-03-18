@@ -703,6 +703,9 @@ importers:
       smooth-scroll-into-view-if-needed:
         specifier: ^2.0.2
         version: 2.0.2
+      spin-delay:
+        specifier: ^2.0.1
+        version: 2.0.1(react@18.3.1)
       swr:
         specifier: 'catalog:'
         version: 2.2.4(react@18.3.1)
@@ -7899,6 +7902,11 @@ packages:
 
   space-separated-tokens@2.0.2:
     resolution: {integrity: sha512-PEGlAwrG8yXGXRjW32fGbg66JAlOAwbObuqVoJpv/mRgoWDQfgH1wDPvtzWyUSNAXBGSk8h755YDbbcEy3SH2Q==}
+
+  spin-delay@2.0.1:
+    resolution: {integrity: sha512-ilggKXKqAMwk21PSYvxuF/KCnrsGFDrnO6mXa629mj8fvfo+dOQfubDViqsRjRX5U1jd3Xb8FTsV+m4Tg7YeUg==}
+    peerDependencies:
+      react: '>=17.0.1'
 
   stack-trace@0.0.10:
     resolution: {integrity: sha512-KGzahc7puUKkzyMt+IqAep+TVNbKP+k2Lmwhub39m1AsTSkaDutx56aDCo+HLDzf/D26BIHTJWNiTG1KAJiQCg==}
@@ -15890,6 +15898,10 @@ snapshots:
   source-map@0.6.1: {}
 
   space-separated-tokens@2.0.2: {}
+
+  spin-delay@2.0.1(react@18.3.1):
+    dependencies:
+      react: 18.3.1
 
   stack-trace@0.0.10: {}
 

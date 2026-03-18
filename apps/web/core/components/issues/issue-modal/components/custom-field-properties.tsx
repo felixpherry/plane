@@ -1,7 +1,9 @@
 /* eslint-disable */
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useSpinDelay } from "spin-delay";
+import { Skeleton } from "@plane/propel/skeleton";
+import { useState, useEffect, useCallback } from "react";
 import { Popover } from "@headlessui/react";
 import { Type, Hash, List, CheckSquare, Link2, Check } from "lucide-react";
 import { Input } from "@plane/ui";
@@ -71,14 +73,22 @@ const InlineFieldInput = ({
 
 export const CustomFieldProperties = ({ workspaceSlug, projectId, customFieldValues, onCustomFieldChange }: Props) => {
   const [fields, setFields] = useState<ICustomField[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const showLoading = useSpinDelay(isLoading, {
+    delay: 0, // don't show skeleton if loading takes less than 200ms
+    minDuration: 300, // once shown, keep skeleton for at least 300ms
+  });
 
   const fetchFields = useCallback(async () => {
     if (!workspaceSlug || !projectId) return;
     try {
+      setIsLoading(true);
       const data = await customFieldService.listFields(workspaceSlug, projectId);
       setFields(data.filter((f) => f.is_active));
     } catch (error) {
       console.error("Failed to fetch custom fields:", error);
+    } finally {
+      setIsLoading(false);
     }
   }, [workspaceSlug, projectId]);
 
@@ -86,10 +96,26 @@ export const CustomFieldProperties = ({ workspaceSlug, projectId, customFieldVal
     fetchFields();
   }, [fetchFields]);
 
+  if (showLoading) {
+    return (
+      <>
+        <Skeleton ariaLabel="Loading custom fields">
+          <div className="flex flex-wrap items-center gap-2">
+            <Skeleton.Item height="28px" width="100px" />
+            <Skeleton.Item height="28px" width="100px" />
+            <Skeleton.Item height="28px" width="100px" />
+            <Skeleton.Item height="28px" width="100px" />
+            <Skeleton.Item height="28px" width="100px" />
+            <Skeleton.Item height="28px" width="100px" />
+          </div>
+        </Skeleton>
+      </>
+    );
+  }
   if (fields.length === 0) return null;
 
   return (
-    <>
+    <div className="flex flex-wrap items-center gap-2">
       {fields.map((field) => {
         const value = customFieldValues[field.id];
 
@@ -198,6 +224,6 @@ export const CustomFieldProperties = ({ workspaceSlug, projectId, customFieldVal
             return null;
         }
       })}
-    </>
+    </div>
   );
 };

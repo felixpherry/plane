@@ -69,6 +69,7 @@
     "recharts": "^2.12.7",
     "serve": "14.2.5",
     "smooth-scroll-into-view-if-needed": "^2.0.2",
+    "spin-delay": "^2.0.1",
     "swr": "catalog:",
     "use-font-face-observer": "^1.2.2",
     "uuid": "catalog:"

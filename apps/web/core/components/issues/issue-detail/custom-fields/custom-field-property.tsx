@@ -34,6 +34,7 @@ type Props = {
 export const CustomFieldProperty = ({ field, value, onValueChange, disabled = false }: Props) => {
   const Icon = FIELD_TYPE_ICONS[field.field_type] || Type;
   const currentValue = value?.value as unknown;
+  console.log({ currentValue });
 
   const handleChange = useCallback(
     (newValue: unknown) => {

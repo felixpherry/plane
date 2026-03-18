@@ -34,7 +34,6 @@ import { useUserPermissions } from "@/hooks/store/user";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web components
 import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
-import { CustomFieldProperties } from "./custom-field-properties";
 
 type TIssueDefaultPropertiesProps = {
   control: Control<TIssue>;
@@ -48,8 +47,6 @@ type TIssueDefaultPropertiesProps = {
   isDraft: boolean;
   handleFormChange: () => void;
   setSelectedParentIssue: (issue: ISearchIssueResponse) => void;
-  customFieldValues: Record<string, unknown>;
-  onCustomFieldChange: (fieldId: string, value: unknown) => void;
 };
 
 export const IssueDefaultProperties = observer(function IssueDefaultProperties(props: TIssueDefaultPropertiesProps) {
@@ -65,8 +62,6 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
     isDraft,
     handleFormChange,
     setSelectedParentIssue,
-    customFieldValues,
-    onCustomFieldChange,
   } = props;
   // states
   const [parentIssueListModalOpen, setParentIssueListModalOpen] = useState(false);
@@ -295,7 +290,7 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
             tabIndex={getIndex("parent_id")}
           >
             <>
-              <CustomMenu.MenuItem className="!p-1" onClick={() => setParentIssueListModalOpen(true)}>
+              <CustomMenu.MenuItem className="p-1!" onClick={() => setParentIssueListModalOpen(true)}>
                 {t("change_parent_issue")}
               </CustomMenu.MenuItem>
               <Controller
@@ -303,7 +298,7 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
                 name="parent_id"
                 render={({ field: { onChange } }) => (
                   <CustomMenu.MenuItem
-                    className="!p-1"
+                    className="p-1!"
                     onClick={() => {
                       onChange(null);
                       handleFormChange();
@@ -326,14 +321,6 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
           </button>
         )}
       </div>
-      {projectId && workspaceSlug && (
-        <CustomFieldProperties
-          workspaceSlug={workspaceSlug}
-          projectId={projectId}
-          customFieldValues={customFieldValues}
-          onCustomFieldChange={onCustomFieldChange}
-        />
-      )}
 
       <Controller
         control={control}

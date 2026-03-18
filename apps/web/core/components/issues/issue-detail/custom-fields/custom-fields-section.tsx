@@ -51,6 +51,7 @@ export const CustomFieldsSection = ({ workspaceSlug, projectId, issueId, disable
 
   const handleValueChange = useCallback(
     async (fieldId: string, newValue: unknown) => {
+      // Optimistic update
       setValues((prev) => {
         const existingIndex = prev.findIndex((v) => v.custom_field === fieldId);
         if (existingIndex >= 0) {
@@ -59,7 +60,6 @@ export const CustomFieldsSection = ({ workspaceSlug, projectId, issueId, disable
             ...updated[existingIndex],
             value: newValue as Record<string, unknown>,
           };
-
           return updated;
         } else {
           return [
@@ -67,7 +67,7 @@ export const CustomFieldsSection = ({ workspaceSlug, projectId, issueId, disable
             {
               id: `temp-${fieldId}`,
               custom_field: fieldId,
-              value: newValue,
+              value: newValue as Record<string, unknown>,
               issue: issueId,
               workspace: "",
               project: "",
@@ -81,14 +81,14 @@ export const CustomFieldsSection = ({ workspaceSlug, projectId, issueId, disable
         }
       });
 
+      // Save to API — but DON'T re-fetch
       try {
         await customFieldService.setValues(workspaceSlug, projectId, issueId, [
           { custom_field: fieldId, value: newValue },
         ]);
-        const updatedValues = await customFieldService.listValues(workspaceSlug, projectId, issueId);
-        setValues(updatedValues);
       } catch (error) {
         console.error("Failed to update custom field value:", error);
+        // Only re-fetch on error to revert
         const originalValues = await customFieldService.listValues(workspaceSlug, projectId, issueId);
         setValues(originalValues);
       }
