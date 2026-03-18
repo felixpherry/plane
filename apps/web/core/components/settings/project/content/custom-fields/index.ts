@@ -4,4 +4,4 @@
  * See the LICENSE file for details.
  */
 
-export { CustomFieldSettingsList as CustomFieldSettings } from "./custom-field-list";
+export { CustomFieldSettings } from "./custom-field-list";

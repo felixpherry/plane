@@ -12,42 +12,28 @@ import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view
 import { PageHead } from "@/components/core/page-title";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 import { SettingsHeading } from "@/components/settings/heading";
-import { CustomFieldSettings } from "@/components/settings/project/content/custom-fields";
+// import { CustomFieldSettings } from '@/components/settings/project/content/custom-fields';
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 // local imports
-import type { Route } from "./+types/page";
 import { FeaturesCustomFieldsProjectSettingsHeader } from "./header";
+import { CustomFieldSettings } from "@/components/settings/project/content/custom-fields";
 
-function FeaturesCustomFieldsSettingsPage({ params }: Route.ComponentProps) {
-  const { workspaceSlug, projectId } = params;
+function FeaturesCustomFieldsSettingsPage() {
   // store hooks
   const { workspaceUserInfo, allowPermissions } = useUserPermissions();
   const { currentProjectDetails } = useProject();
   // derived values
-  const pageTitle = currentProjectDetails?.name
-    ? `${currentProjectDetails?.name} settings - Custom Fields`
-    : undefined;
-  const canPerformProjectAdminActions = allowPermissions(
-    [EUserPermissions.ADMIN],
-    EUserPermissionsLevel.PROJECT
-  );
+  const pageTitle = currentProjectDetails?.name ? `${currentProjectDetails?.name} settings - Custom Fields` : undefined;
+  const canPerformProjectAdminActions = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT);
 
   if (workspaceUserInfo && !canPerformProjectAdminActions) {
-    return (
-      <NotAuthorizedView
-        section="settings"
-        isProjectView
-        className="h-auto"
-      />
-    );
+    return <NotAuthorizedView section="settings" isProjectView className="h-auto" />;
   }
 
   return (
-    <SettingsContentWrapper
-      header={<FeaturesCustomFieldsProjectSettingsHeader />}
-    >
+    <SettingsContentWrapper header={<FeaturesCustomFieldsProjectSettingsHeader />}>
       <PageHead title={pageTitle} />
       <section className="w-full">
         <SettingsHeading
@@ -55,10 +41,7 @@ function FeaturesCustomFieldsSettingsPage({ params }: Route.ComponentProps) {
           description="Define custom properties for work items in this project. Fields you create here will appear in the work item detail sidebar."
         />
         <div className="mt-7">
-          <CustomFieldSettings
-            workspaceSlug={workspaceSlug}
-            projectId={projectId}
-          />
+          <CustomFieldSettings />
         </div>
       </section>
     </SettingsContentWrapper>

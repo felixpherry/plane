@@ -5,24 +5,24 @@
 
 // Field type enum matching the Django backend
 export enum ECustomFieldType {
-  TEXT = 'text',
-  NUMBER = 'number',
-  SELECT = 'select',
-  MULTI_SELECT = 'multi_select',
-  DATE = 'date',
-  CHECKBOX = 'checkbox',
-  URL = 'url',
+  TEXT = "text",
+  NUMBER = "number",
+  SELECT = "select",
+  MULTI_SELECT = "multi_select",
+  DATE = "date",
+  CHECKBOX = "checkbox",
+  URL = "url",
 }
 
 // Display labels for field types
 export const CUSTOM_FIELD_TYPE_LABELS: Record<ECustomFieldType, string> = {
-  [ECustomFieldType.TEXT]: 'Single line',
-  [ECustomFieldType.NUMBER]: 'Number',
-  [ECustomFieldType.SELECT]: 'Single select',
-  [ECustomFieldType.MULTI_SELECT]: 'Multi select',
-  [ECustomFieldType.DATE]: 'Date',
-  [ECustomFieldType.CHECKBOX]: 'Checkbox',
-  [ECustomFieldType.URL]: 'URL',
+  [ECustomFieldType.TEXT]: "Single line",
+  [ECustomFieldType.NUMBER]: "Number",
+  [ECustomFieldType.SELECT]: "Single select",
+  [ECustomFieldType.MULTI_SELECT]: "Multi select",
+  [ECustomFieldType.DATE]: "Date",
+  [ECustomFieldType.CHECKBOX]: "Checkbox",
+  [ECustomFieldType.URL]: "URL",
 };
 
 // Custom field definition (project-level)

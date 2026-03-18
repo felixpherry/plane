@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { useCallback } from 'react';
-import { Type, Hash, List, Calendar, CheckSquare, Link2 } from 'lucide-react';
-import type { ICustomField, ICustomFieldValue } from '@plane/types';
-import { SidebarPropertyListItem } from '@/components/common/layout/sidebar/property-list-item';
+import { useCallback } from "react";
+import { Type, Hash, List, Calendar, CheckSquare, Link2 } from "lucide-react";
+import type { ICustomField, ICustomFieldValue } from "@plane/types";
+import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 import {
   CustomFieldTextInput,
   CustomFieldNumberInput,
   CustomFieldSelectInput,
   CustomFieldCheckboxInput,
   CustomFieldUrlInput,
-} from './field-inputs';
-import { DateDropdown } from '@/components/dropdowns/date';
-import { renderFormattedPayloadDate } from '@plane/utils';
+} from "./field-inputs";
+import { DateDropdown } from "@/components/dropdowns/date";
+import { renderFormattedPayloadDate } from "@plane/utils";
 
 const FIELD_TYPE_ICONS: Record<string, React.FC<{ className?: string }>> = {
   text: Type,
@@ -31,12 +31,7 @@ type Props = {
   disabled?: boolean;
 };
 
-export const CustomFieldProperty = ({
-  field,
-  value,
-  onValueChange,
-  disabled = false,
-}: Props) => {
+export const CustomFieldProperty = ({ field, value, onValueChange, disabled = false }: Props) => {
   const Icon = FIELD_TYPE_ICONS[field.field_type] || Type;
   const currentValue = value?.value as unknown;
 
@@ -44,20 +39,20 @@ export const CustomFieldProperty = ({
     (newValue: unknown) => {
       onValueChange(field.id, newValue);
     },
-    [field.id, onValueChange],
+    [field.id, onValueChange]
   );
 
   const renderInput = () => {
     switch (field.field_type) {
-      case 'text':
+      case "text":
         return (
           <CustomFieldTextInput
-            value={(currentValue as string) || ''}
+            value={(currentValue as string) || ""}
             onChange={handleChange as (v: string) => void}
             disabled={disabled}
           />
         );
-      case 'number':
+      case "number":
         return (
           <CustomFieldNumberInput
             value={(currentValue as number) ?? null}
@@ -65,25 +60,25 @@ export const CustomFieldProperty = ({
             disabled={disabled}
           />
         );
-      case 'select':
-      case 'multi_select':
+      case "select":
+      case "multi_select":
         return (
           <CustomFieldSelectInput
-            value={(currentValue as string) || ''}
+            value={(currentValue as string) || ""}
             options={field.options || []}
             onChange={handleChange as (v: string) => void}
             disabled={disabled}
             fieldName={field.name}
-            buttonVariant='transparent-with-text'
-            className='group w-full grow'
-            buttonContainerClassName='w-full text-left h-7.5'
-            buttonClassName={`text-body-xs-medium ${currentValue ? '' : 'text-placeholder'}`}
+            buttonVariant="transparent-with-text"
+            className="group w-full grow"
+            buttonContainerClassName="w-full text-left h-7.5"
+            buttonClassName={`text-body-xs-medium ${currentValue ? "" : "text-placeholder"}`}
             dropdownArrow
-            dropdownArrowClassName='h-3.5 w-3.5 hidden group-hover:inline'
+            dropdownArrowClassName="h-3.5 w-3.5 hidden group-hover:inline"
           />
         );
 
-      case 'date':
+      case "date":
         return (
           <DateDropdown
             value={currentValue ? new Date(currentValue as string) : null}
@@ -91,16 +86,16 @@ export const CustomFieldProperty = ({
               handleChange(val ? renderFormattedPayloadDate(val) : null);
             }}
             placeholder={`Add ${field.name}`}
-            buttonVariant='transparent-with-text'
+            buttonVariant="transparent-with-text"
             disabled={disabled}
-            className='group w-full grow'
-            buttonContainerClassName='w-full text-left h-7.5'
-            buttonClassName={`text-body-xs-medium ${currentValue ? '' : 'text-placeholder'}`}
+            className="group w-full grow"
+            buttonContainerClassName="w-full text-left h-7.5"
+            buttonClassName={`text-body-xs-medium ${currentValue ? "" : "text-placeholder"}`}
             hideIcon
-            clearIconClassName='h-3 w-3 hidden group-hover:inline'
+            clearIconClassName="h-3 w-3 hidden group-hover:inline"
           />
         );
-      case 'checkbox':
+      case "checkbox":
         return (
           <CustomFieldCheckboxInput
             value={Boolean(currentValue)}
@@ -108,10 +103,10 @@ export const CustomFieldProperty = ({
             disabled={disabled}
           />
         );
-      case 'url':
+      case "url":
         return (
           <CustomFieldUrlInput
-            value={(currentValue as string) || ''}
+            value={(currentValue as string) || ""}
             onChange={handleChange as (v: string) => void}
             disabled={disabled}
           />
@@ -119,7 +114,7 @@ export const CustomFieldProperty = ({
       default:
         return (
           <CustomFieldTextInput
-            value={(currentValue as string) || ''}
+            value={(currentValue as string) || ""}
             onChange={handleChange as (v: string) => void}
             disabled={disabled}
           />

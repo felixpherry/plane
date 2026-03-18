@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from '@plane/i18n';
-import type { ICustomField, ICustomFieldValue } from '@plane/types';
-import { CustomFieldService } from '@plane/services';
-import { CustomFieldProperty } from './custom-field-property';
+import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "@plane/i18n";
+import type { ICustomField, ICustomFieldValue } from "@plane/types";
+import { CustomFieldService } from "@plane/services";
+import { CustomFieldProperty } from "./custom-field-property";
 
 const customFieldService = new CustomFieldService();
 
@@ -15,12 +15,7 @@ type Props = {
   disabled?: boolean;
 };
 
-export const CustomFieldsSection = ({
-  workspaceSlug,
-  projectId,
-  issueId,
-  disabled = false,
-}: Props) => {
+export const CustomFieldsSection = ({ workspaceSlug, projectId, issueId, disabled = false }: Props) => {
   const { t } = useTranslation();
   const [fields, setFields] = useState<ICustomField[]>([]);
   const [values, setValues] = useState<ICustomFieldValue[]>([]);
@@ -37,7 +32,7 @@ export const CustomFieldsSection = ({
       setFields(fieldsRes);
       setValues(valuesRes);
     } catch (error) {
-      console.error('Failed to fetch custom fields:', error);
+      console.error("Failed to fetch custom fields:", error);
     } finally {
       setIsLoading(false);
     }
@@ -74,12 +69,12 @@ export const CustomFieldsSection = ({
               custom_field: fieldId,
               value: newValue,
               issue: issueId,
-              workspace: '',
-              project: '',
+              workspace: "",
+              project: "",
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
               deleted_at: null,
-              created_by: '',
+              created_by: "",
               updated_by: null,
             } as ICustomFieldValue,
           ];
@@ -90,23 +85,15 @@ export const CustomFieldsSection = ({
         await customFieldService.setValues(workspaceSlug, projectId, issueId, [
           { custom_field: fieldId, value: newValue },
         ]);
-        const updatedValues = await customFieldService.listValues(
-          workspaceSlug,
-          projectId,
-          issueId,
-        );
+        const updatedValues = await customFieldService.listValues(workspaceSlug, projectId, issueId);
         setValues(updatedValues);
       } catch (error) {
-        console.error('Failed to update custom field value:', error);
-        const originalValues = await customFieldService.listValues(
-          workspaceSlug,
-          projectId,
-          issueId,
-        );
+        console.error("Failed to update custom field value:", error);
+        const originalValues = await customFieldService.listValues(workspaceSlug, projectId, issueId);
         setValues(originalValues);
       }
     },
-    [workspaceSlug, projectId, issueId],
+    [workspaceSlug, projectId, issueId]
   );
 
   if (isLoading) return null;
@@ -114,8 +101,8 @@ export const CustomFieldsSection = ({
 
   return (
     <>
-      <h6 className='text-body-xs-medium'>{t('common.custom_properties')}</h6>
-      <div className={`mt-3 w-full space-y-3 ${disabled ? 'opacity-60' : ''}`}>
+      <h6 className="text-body-xs-medium">{t("common.custom_properties")}</h6>
+      <div className={`mt-3 w-full space-y-3 ${disabled ? "opacity-60" : ""}`}>
         {activeFields.map((field) => (
           <CustomFieldProperty
             key={field.id}

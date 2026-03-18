@@ -1,272 +1,191 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import {
-  Type,
-  Hash,
-  List,
-  Calendar,
-  CheckSquare,
-  Link2,
-  MoreHorizontal,
-  Plus,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
+import { Type, Hash, List, Calendar, CheckSquare, Link2, Pencil, Trash2 } from "lucide-react";
+import { Card, ECardVariant, ECardSpacing, Badge, CustomMenu } from "@plane/ui";
+import type { ICustomField, ICustomFieldCreatePayload } from "@plane/types";
 import { CustomFieldService } from "@plane/services";
-import type { ICustomField } from "@plane/types";
 import { CustomFieldInlineForm } from "./custom-field-inline-form";
 
 const customFieldService = new CustomFieldService();
 
-const FIELD_TYPE_CONFIG: Record<
-  string,
-  { label: string; icon: React.FC<{ className?: string }> }
-> = {
-  text: { label: "Single line", icon: Type },
-  number: { label: "Number", icon: Hash },
-  select: { label: "Single select", icon: List },
-  multi_select: { label: "Multi select", icon: List },
-  date: { label: "Date", icon: Calendar },
-  checkbox: { label: "Checkbox", icon: CheckSquare },
-  url: { label: "URL", icon: Link2 },
+const FIELD_TYPE_ICONS: Record<string, React.FC<{ className?: string }>> = {
+  text: Type,
+  number: Hash,
+  select: List,
+  multi_select: List,
+  date: Calendar,
+  checkbox: CheckSquare,
+  url: Link2,
 };
 
-type Props = {
-  workspaceSlug: string;
-  projectId: string;
+const FIELD_TYPE_LABELS: Record<string, string> = {
+  text: "Single line",
+  number: "Number",
+  select: "Single select",
+  multi_select: "Multi select",
+  date: "Date",
+  checkbox: "Checkbox",
+  url: "URL",
 };
 
-export const CustomFieldSettingsList = ({
-  workspaceSlug,
-  projectId,
-}: Props) => {
+export const CustomFieldSettings = () => {
+  const { workspaceSlug, projectId } = useParams();
   const [fields, setFields] = useState<ICustomField[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingField, setEditingField] = useState<ICustomField | null>(
-    null
-  );
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+
+  const slug = workspaceSlug as string;
+  const project = projectId as string;
 
   const fetchFields = useCallback(async () => {
+    if (!slug || !project) return;
     try {
-      const data = await customFieldService.listFields(
-        workspaceSlug,
-        projectId
-      );
+      setIsLoading(true);
+      const data = await customFieldService.listFields(slug, project);
       setFields(data);
     } catch (error) {
-      console.error("Failed to fetch custom fields", error);
+      console.error("Failed to fetch custom fields:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [workspaceSlug, projectId]);
+  }, [slug, project]);
 
   useEffect(() => {
     fetchFields();
   }, [fetchFields]);
 
-  const handleCreate = async (data: {
-    name: string;
-    field_type: string;
-    description: string;
-    options: string[];
-    is_required: boolean;
-    is_active: boolean;
-  }) => {
-    await customFieldService.createField(workspaceSlug, projectId, data);
-    setShowForm(false);
-    await fetchFields();
+  const handleCreate = async (data: ICustomFieldCreatePayload) => {
+    try {
+      await customFieldService.createField(slug, project, data);
+      await fetchFields();
+      setShowCreateForm(false);
+    } catch (error) {
+      console.error("Failed to create custom field:", error);
+    }
   };
 
-  const handleUpdate = async (data: {
-    name: string;
-    field_type: string;
-    description: string;
-    options: string[];
-    is_required: boolean;
-    is_active: boolean;
-  }) => {
-    if (!editingField) return;
-    await customFieldService.updateField(
-      workspaceSlug,
-      projectId,
-      editingField.id,
-      data
-    );
-    setEditingField(null);
-    await fetchFields();
+  const handleUpdate = async (fieldId: string, data: Partial<ICustomField>) => {
+    try {
+      await customFieldService.updateField(slug, project, fieldId, data);
+      await fetchFields();
+      setEditingFieldId(null);
+    } catch (error) {
+      console.error("Failed to update custom field:", error);
+    }
   };
 
   const handleDelete = async (fieldId: string) => {
-    await customFieldService.deleteField(
-      workspaceSlug,
-      projectId,
-      fieldId
-    );
-    setOpenMenuId(null);
-    await fetchFields();
-  };
-
-  const handleEdit = (field: ICustomField) => {
-    setEditingField(field);
-    setShowForm(false);
-    setOpenMenuId(null);
+    try {
+      await customFieldService.deleteField(slug, project, fieldId);
+      await fetchFields();
+    } catch (error) {
+      console.error("Failed to delete custom field:", error);
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-10">
-        <p className="text-sm text-custom-text-400">Loading...</p>
+      <div className="flex h-full items-center justify-center py-10">
+        <span className="text-sm text-custom-text-300">Loading...</span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Field list */}
-      {fields.map((field) => {
-        const typeConfig = FIELD_TYPE_CONFIG[field.field_type];
-        const TypeIcon = typeConfig?.icon || Type;
+    <div className="w-full">
+      <div className="space-y-3">
+        {fields.map((field) => {
+          if (editingFieldId === field.id) {
+            return (
+              <CustomFieldInlineForm
+                key={field.id}
+                mode="edit"
+                initialData={field}
+                onSubmit={(data) => handleUpdate(field.id, data)}
+                onCancel={() => setEditingFieldId(null)}
+              />
+            );
+          }
 
-        // Show inline edit form instead of the row
-        if (editingField?.id === field.id) {
+          const Icon = FIELD_TYPE_ICONS[field.field_type] || Type;
+
           return (
-            <CustomFieldInlineForm
+            <Card
               key={field.id}
-              onSubmit={handleUpdate}
-              onCancel={() => setEditingField(null)}
-              initialData={{
-                name: field.name,
-                field_type: field.field_type,
-                description: field.description || "",
-                options: field.options || [],
-                is_required: field.is_required,
-                is_active: field.is_active,
-              }}
-              isEdit
-            />
+              variant={ECardVariant.WITHOUT_SHADOW}
+              spacing={ECardSpacing.SM}
+              className="group flex flex-row items-center justify-between"
+            >
+              {/* Left: Icon + Name + Description */}
+              <div className="m-0 flex min-w-0 items-center gap-3">
+                <div className="text-custom-text-300 shrink-0">
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-sm text-custom-text-100 truncate font-medium">{field.name}</span>
+                  {field.description && <p className="text-xs text-custom-text-300 truncate">{field.description}</p>}
+                </div>
+              </div>
+
+              {/* Right: Type badge + Mandatory badge + Active/Disabled badge + Menu */}
+              <div className="flex shrink-0 items-center gap-2">
+                <Badge variant="accent-neutral" size="sm">
+                  {FIELD_TYPE_LABELS[field.field_type] || field.field_type}
+                </Badge>
+
+                {field.is_required && (
+                  <Badge variant="accent-neutral" size="sm">
+                    Mandatory
+                  </Badge>
+                )}
+
+                <Badge variant={field.is_active ? "accent-success" : "accent-destructive"} size="sm">
+                  {field.is_active ? "Active" : "Disabled"}
+                </Badge>
+
+                <CustomMenu ellipsis placement="bottom-end" closeOnSelect>
+                  <CustomMenu.MenuItem
+                    onClick={() => {
+                      setEditingFieldId(field.id);
+                      setShowCreateForm(false);
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </CustomMenu.MenuItem>
+                  <CustomMenu.MenuItem
+                    onClick={() => handleDelete(field.id)}
+                    className="flex items-center gap-2 text-red-500"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Delete
+                  </CustomMenu.MenuItem>
+                </CustomMenu>
+              </div>
+            </Card>
           );
-        }
+        })}
 
-        return (
-          <div
-            key={field.id}
-            className="group flex items-center justify-between rounded-lg border border-custom-border-200 bg-custom-background-100 px-4 py-3 hover:bg-custom-background-90 transition-colors"
-          >
-            {/* Left: Icon + Name */}
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-custom-background-80">
-                <TypeIcon className="h-4 w-4 text-custom-text-300" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-custom-text-100 truncate">
-                  {field.name}
-                </p>
-                {field.description && (
-                  <p className="text-xs text-custom-text-400 truncate">
-                    {field.description}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Right: Badges + Menu */}
-            <div className="flex items-center gap-2 shrink-0">
-              {/* Type badge */}
-              <span className="rounded-full bg-custom-background-80 px-2.5 py-0.5 text-xs font-medium text-custom-text-300">
-                {typeConfig?.label || field.field_type}
-              </span>
-
-              {/* Mandatory badge */}
-              {field.is_required && (
-                <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-500">
-                  Mandatory
-                </span>
-              )}
-
-              {/* Active/Disabled badge */}
-              <span
-                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  field.is_active
-                    ? "bg-green-500/10 text-green-500"
-                    : "bg-red-500/10 text-red-500"
-                }`}
-              >
-                {field.is_active ? "Active" : "Disabled"}
-              </span>
-
-              {/* More menu */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOpenMenuId(
-                      openMenuId === field.id ? null : field.id
-                    );
-                  }}
-                  className="flex h-7 w-7 items-center justify-center rounded-md opacity-0 group-hover:opacity-100 hover:bg-custom-background-80 transition-all"
-                >
-                  <MoreHorizontal className="h-4 w-4 text-custom-text-300" />
-                </button>
-                {openMenuId === field.id && (
-                  <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border border-custom-border-200 bg-custom-background-100 py-1 shadow-custom-shadow-rg">
-                    <button
-                      type="button"
-                      onClick={() => handleEdit(field)}
-                      className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-custom-text-200 hover:bg-custom-background-80 transition-colors"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(field.id)}
-                      className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-red-500 hover:bg-custom-background-80 transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Inline create form */}
-      {showForm && (
-        <CustomFieldInlineForm
-          onSubmit={handleCreate}
-          onCancel={() => setShowForm(false)}
-        />
-      )}
+        {/* Inline create form */}
+        {showCreateForm && (
+          <CustomFieldInlineForm mode="create" onSubmit={handleCreate} onCancel={() => setShowCreateForm(false)} />
+        )}
+      </div>
 
       {/* Add button */}
-      {!showForm && !editingField && (
+      {!showCreateForm && !editingFieldId && (
         <button
           type="button"
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 rounded-lg border border-dashed border-custom-border-200 px-4 py-3 text-sm font-medium text-custom-text-300 hover:border-custom-primary-100 hover:text-custom-primary-100 transition-colors"
+          className="text-sm text-custom-primary-100 hover:text-custom-primary-200 mt-4 flex items-center gap-1.5 font-medium transition-colors"
+          onClick={() => setShowCreateForm(true)}
         >
-          <Plus className="h-4 w-4" />
-          Add new custom field
+          <span>+</span>
+          <span>Add new custom field</span>
         </button>
-      )}
-
-      {/* Empty state */}
-      {fields.length === 0 && !showForm && (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-custom-border-200 bg-custom-background-90 py-10">
-          <p className="text-sm text-custom-text-400">
-            No custom fields yet
-          </p>
-          <p className="mt-1 text-xs text-custom-text-400">
-            Click &quot;Add new custom field&quot; to create your first one
-          </p>
-        </div>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
-import { Input } from '@plane/ui';
+import { useState, useRef } from "react";
+import { Input } from "@plane/ui";
 
 type Props = {
   value: number | null;
@@ -9,18 +9,14 @@ type Props = {
   disabled?: boolean;
 };
 
-export const CustomFieldNumberInput = ({
-  value,
-  onChange,
-  disabled = false,
-}: Props) => {
-  const [localValue, setLocalValue] = useState(value?.toString() ?? '');
+export const CustomFieldNumberInput = ({ value, onChange, disabled = false }: Props) => {
+  const [localValue, setLocalValue] = useState(value?.toString() ?? "");
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = () => {
     setIsEditing(false);
-    const numValue = localValue === '' ? null : Number(localValue);
+    const numValue = localValue === "" ? null : Number(localValue);
     if (numValue !== value) {
       onChange(numValue);
     }
@@ -29,8 +25,8 @@ export const CustomFieldNumberInput = ({
   if (!isEditing) {
     return (
       <button
-        type='button'
-        className='flex h-7.5 w-full items-center truncate rounded-sm px-1.5 text-body-xs-medium hover:bg-custom-background-80 transition-colors'
+        type="button"
+        className="hover:bg-custom-background-80 flex h-7.5 w-full items-center truncate rounded-sm px-1.5 text-body-xs-medium transition-colors"
         onClick={() => {
           if (!disabled) {
             setIsEditing(true);
@@ -39,9 +35,7 @@ export const CustomFieldNumberInput = ({
         }}
         disabled={disabled}
       >
-        <span className={value !== null ? '' : 'text-placeholder'}>
-          {value !== null ? value : 'Add number'}
-        </span>
+        <span className={value !== null ? "" : "text-placeholder"}>{value !== null ? value : "Add number"}</span>
       </button>
     );
   }
@@ -49,21 +43,20 @@ export const CustomFieldNumberInput = ({
   return (
     <Input
       ref={inputRef}
-      type='number'
-      mode='transparent'
-      inputSize='xs'
-      className='w-full text-body-xs-medium'
+      type="number"
+      mode="transparent"
+      inputSize="xs"
+      className="w-full text-body-xs-medium"
       value={localValue}
       onChange={(e) => setLocalValue(e.target.value)}
       onBlur={handleSubmit}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') handleSubmit();
-        if (e.key === 'Escape') {
-          setLocalValue(value?.toString() ?? '');
+        if (e.key === "Enter") handleSubmit();
+        if (e.key === "Escape") {
+          setLocalValue(value?.toString() ?? "");
           setIsEditing(false);
         }
       }}
-      autoFocus
       disabled={disabled}
     />
   );

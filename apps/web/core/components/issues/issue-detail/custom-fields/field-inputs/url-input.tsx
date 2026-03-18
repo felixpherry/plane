@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
-import { ExternalLink } from 'lucide-react';
-import { Input } from '@plane/ui';
+import { useState, useRef } from "react";
+import { ExternalLink } from "lucide-react";
+import { Input } from "@plane/ui";
 
 type Props = {
   value: string;
@@ -10,11 +10,7 @@ type Props = {
   disabled?: boolean;
 };
 
-export const CustomFieldUrlInput = ({
-  value,
-  onChange,
-  disabled = false,
-}: Props) => {
+export const CustomFieldUrlInput = ({ value, onChange, disabled = false }: Props) => {
   const [localValue, setLocalValue] = useState(value);
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,8 +25,8 @@ export const CustomFieldUrlInput = ({
   if (!isEditing) {
     return (
       <button
-        type='button'
-        className='flex h-7.5 w-full items-center gap-1.5 truncate rounded-sm px-1.5 text-body-xs-medium hover:bg-custom-background-80 transition-colors'
+        type="button"
+        className="hover:bg-custom-background-80 flex h-7.5 w-full items-center gap-1.5 truncate rounded-sm px-1.5 text-body-xs-medium transition-colors"
         onClick={() => {
           if (!disabled) {
             setIsEditing(true);
@@ -41,19 +37,19 @@ export const CustomFieldUrlInput = ({
       >
         {value ? (
           <>
-            <span className='truncate text-custom-primary-100'>{value}</span>
+            <span className="text-custom-primary-100 truncate">{value}</span>
             <a
               href={value}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='flex-shrink-0 text-custom-text-300 hover:text-custom-text-200'
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-custom-text-300 hover:text-custom-text-200 flex-shrink-0"
               onClick={(e) => e.stopPropagation()}
             >
-              <ExternalLink className='h-3 w-3' />
+              <ExternalLink className="h-3 w-3" />
             </a>
           </>
         ) : (
-          <span className='text-placeholder'>Add URL</span>
+          <span className="text-placeholder">Add URL</span>
         )}
       </button>
     );
@@ -62,22 +58,21 @@ export const CustomFieldUrlInput = ({
   return (
     <Input
       ref={inputRef}
-      type='url'
-      mode='transparent'
-      inputSize='xs'
-      className='w-full text-body-xs-medium'
-      placeholder='https://'
+      type="url"
+      mode="transparent"
+      inputSize="xs"
+      className="w-full text-body-xs-medium"
+      placeholder="https://"
       value={localValue}
       onChange={(e) => setLocalValue(e.target.value)}
       onBlur={handleSubmit}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') handleSubmit();
-        if (e.key === 'Escape') {
+        if (e.key === "Enter") handleSubmit();
+        if (e.key === "Escape") {
           setLocalValue(value);
           setIsEditing(false);
         }
       }}
-      autoFocus
       disabled={disabled}
     />
   );
