@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Type, Hash, List, Calendar, CheckSquare, Link2, Pencil, Trash2 } from "lucide-react";
-import { Card, ECardVariant, ECardSpacing, Badge, CustomMenu } from "@plane/ui";
+import { Type, Hash, List, Calendar, CheckSquare, Link2, Pencil, Trash2, PlusIcon } from "lucide-react";
+import { Card, ECardVariant, ECardSpacing, Badge, CustomMenu, Button } from "@plane/ui";
 import type { ICustomField, ICustomFieldCreatePayload } from "@plane/types";
 import { CustomFieldService } from "@plane/services";
 import { CustomFieldInlineForm } from "./custom-field-inline-form";
@@ -178,14 +178,15 @@ export const CustomFieldSettings = () => {
 
       {/* Add button */}
       {!showCreateForm && !editingFieldId && (
-        <button
-          type="button"
-          className="text-sm text-custom-primary-100 hover:text-custom-primary-200 mt-4 flex items-center gap-1.5 font-medium transition-colors"
+        <Button
+          variant="accent-primary"
+          size="sm"
           onClick={() => setShowCreateForm(true)}
+          className="mt-4"
+          prependIcon={<PlusIcon className="size-3.5" />}
         >
-          <span>+</span>
-          <span>Add new custom field</span>
-        </button>
+          Add new custom field
+        </Button>
       )}
     </div>
   );

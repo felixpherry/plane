@@ -1,16 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Type,
-  Hash,
-  List,
-  Calendar,
-  CheckSquare,
-  Link2,
-  X,
-  Plus,
-} from "lucide-react";
+import { Type, Hash, List, Calendar, CheckSquare, Link2, X, Plus } from "lucide-react";
+import { Button, Input, Checkbox, Card, ECardVariant, ECardSpacing } from "@plane/ui";
+import { ECustomFieldType } from "@plane/types";
 
 const FIELD_TYPES = [
   { value: "text", label: "Single line", icon: Type },
@@ -25,7 +18,7 @@ const FIELD_TYPES = [
 type Props = {
   onSubmit: (data: {
     name: string;
-    field_type: string;
+    field_type: ECustomFieldType;
     description: string;
     options: string[];
     is_required: boolean;
@@ -40,38 +33,26 @@ type Props = {
     is_required: boolean;
     is_active: boolean;
   };
-  isEdit?: boolean;
+  mode?: "create" | "edit";
 };
 
-export const CustomFieldInlineForm = ({
-  onSubmit,
-  onCancel,
-  initialData,
-  isEdit = false,
-}: Props) => {
+export const CustomFieldInlineForm = ({ onSubmit, onCancel, initialData, mode = "create" }: Props) => {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState(initialData?.name || "");
-  const [fieldType, setFieldType] = useState(
-    initialData?.field_type || "text"
-  );
-  const [description, setDescription] = useState(
-    initialData?.description || ""
-  );
-  const [options, setOptions] = useState<string[]>(
-    initialData?.options || []
-  );
-  const [newOption, setNewOption] = useState("");
-  const [isRequired, setIsRequired] = useState(
-    initialData?.is_required || false
-  );
-  const [isActive, setIsActive] = useState(
-    initialData?.is_active !== undefined ? initialData.is_active : true
+  const [fieldType, setFieldType] = useState<ECustomFieldType>(
+    (initialData?.field_type as ECustomFieldType) || ECustomFieldType.TEXT
   );
 
-  const isSelectType =
-    fieldType === "select" || fieldType === "multi_select";
+  const [description, setDescription] = useState(initialData?.description || "");
+  const [options, setOptions] = useState<string[]>(initialData?.options || []);
+  const [newOption, setNewOption] = useState("");
+  const [isRequired, setIsRequired] = useState(initialData?.is_required || false);
+  const [isActive, setIsActive] = useState(initialData?.is_active !== undefined ? initialData.is_active : true);
+
+  const isEdit = mode === "edit";
+  const isSelectType = fieldType === "select" || fieldType === "multi_select";
 
   useEffect(() => {
     nameInputRef.current?.focus();
@@ -119,164 +100,144 @@ export const CustomFieldInlineForm = ({
     }
   };
 
-  const selectedType = FIELD_TYPES.find((t) => t.value === fieldType);
-
   return (
-    <div
-      ref={formRef}
-      className="rounded-lg border border-custom-border-200 bg-custom-background-100 p-4"
-    >
+    <Card ref={formRef} variant={ECardVariant.WITHOUT_SHADOW} spacing={ECardSpacing.SM}>
       <div className="flex flex-col gap-4">
         {/* Row 1: Name + Type */}
         <div className="flex items-start gap-3">
           <div className="flex-1">
-            <label className="mb-1.5 block text-xs font-medium text-custom-text-300">
+            <label htmlFor="title" className="text-custom-text-300 mb-1.5 block text-12 font-medium">
               Title
             </label>
-            <input
+            <Input
+              id="title"
               ref={nameInputRef}
-              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Field name"
-              className="w-full rounded-md border border-custom-border-200 bg-custom-background-100 px-3 py-2 text-sm text-custom-text-200 placeholder-custom-text-400 outline-none focus:border-custom-primary-100"
+              mode="primary"
+              inputSize="sm"
+              className="w-full"
             />
           </div>
           <div className="w-48">
-            <label className="mb-1.5 block text-xs font-medium text-custom-text-300">
+            <label htmlFor="propertyType" className="text-custom-text-300 mb-1.5 block text-12 font-medium">
               Property type
             </label>
-            <div className="relative">
-              <select
-                value={fieldType}
-                onChange={(e) => {
-                  setFieldType(e.target.value);
-                  if (
-                    e.target.value !== "select" &&
-                    e.target.value !== "multi_select"
-                  ) {
-                    setOptions([]);
-                  }
-                }}
-                className="w-full appearance-none rounded-md border border-custom-border-200 bg-custom-background-100 px-3 py-2 text-sm text-custom-text-200 outline-none focus:border-custom-primary-100"
-              >
-                {FIELD_TYPES.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              id="propertyType"
+              value={fieldType}
+              onChange={(e) => {
+                setFieldType(e.target.value as ECustomFieldType);
+                if (e.target.value !== "select" && e.target.value !== "multi_select") {
+                  setOptions([]);
+                }
+              }}
+              className="placeholder-tertiary block w-full rounded-md border-[0.5px] border-subtle-1 bg-layer-2 px-3 py-2 text-13 focus:outline-none"
+            >
+              {FIELD_TYPES.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
         {/* Row 2: Description */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-custom-text-300">
+          <label htmlFor="description" className="text-custom-text-300 mb-1.5 block text-12 font-medium">
             Description
           </label>
-          <input
-            type="text"
+          <Input
+            id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Optional description"
-            className="w-full rounded-md border border-custom-border-200 bg-custom-background-100 px-3 py-2 text-sm text-custom-text-200 placeholder-custom-text-400 outline-none focus:border-custom-primary-100"
+            mode="primary"
+            inputSize="sm"
+            className="w-full"
           />
         </div>
 
         {/* Row 3: Options (only for select types) */}
         {isSelectType && (
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-custom-text-300">
-              Options
-            </label>
+            <span className="text-custom-text-300 mb-1.5 block text-12 font-medium">Options</span>
             <div className="flex flex-col gap-2">
               {options.map((option, index) => (
                 <div
-                  key={index}
-                  className="flex items-center gap-2 rounded-md border border-custom-border-200 bg-custom-background-90 px-3 py-1.5 text-sm text-custom-text-200"
+                  key={option}
+                  className="flex items-center gap-2 rounded-md border-[0.5px] border-subtle-1 bg-layer-2 px-3 py-1.5 text-13"
                 >
                   <span className="flex-1">{option}</span>
                   <button
                     type="button"
                     onClick={() => handleRemoveOption(index)}
-                    className="text-custom-text-400 hover:text-red-500 transition-colors"
+                    className="text-custom-text-400 transition-colors hover:text-red-500"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))}
               <div className="flex items-center gap-2">
-                <input
-                  type="text"
+                <Input
                   value={newOption}
                   onChange={(e) => setNewOption(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Add an option"
-                  className="flex-1 rounded-md border border-custom-border-200 bg-custom-background-100 px-3 py-1.5 text-sm text-custom-text-200 placeholder-custom-text-400 outline-none focus:border-custom-primary-100"
+                  mode="primary"
+                  inputSize="sm"
+                  className="flex-1"
                 />
-                <button
-                  type="button"
+                <Button
+                  variant="link-primary"
+                  size="sm"
                   onClick={handleAddOption}
                   disabled={!newOption.trim()}
-                  className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-custom-primary-100 hover:bg-custom-primary-100/10 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                  prependIcon={<Plus className="h-3.5 w-3.5" />}
                 >
-                  <Plus className="h-3.5 w-3.5" />
                   Add
-                </button>
+                </Button>
               </div>
             </div>
           </div>
         )}
 
         {/* Row 4: Toggles + Actions */}
-        <div className="flex items-center justify-between border-t border-custom-border-200 pt-4">
+        <div className="flex items-center justify-between border-t border-subtle pt-4">
           <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 text-sm text-custom-text-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isRequired}
-                onChange={(e) => setIsRequired(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-custom-border-300 accent-custom-primary-100"
-              />
+            <label
+              htmlFor="mandatoryProperty"
+              className="text-custom-text-300 flex cursor-pointer items-center gap-2 text-12"
+            >
+              <Checkbox id="mandatoryProperty" checked={isRequired} onChange={() => setIsRequired(!isRequired)} />
               Mandatory property
             </label>
-            <label className="flex items-center gap-2 text-sm text-custom-text-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-custom-border-300 accent-custom-primary-100"
-              />
+            <label
+              htmlFor="checkbox__active"
+              className="text-custom-text-300 flex cursor-pointer items-center gap-2 text-12"
+            >
+              <Checkbox id="checkbox__active" checked={isActive} onChange={() => setIsActive(!isActive)} />
               Active
             </label>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isSubmitting}
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-custom-text-300 hover:bg-custom-background-80 transition-colors"
-            >
+            <Button variant="neutral-primary" size="sm" onClick={onCancel} disabled={isSubmitting}>
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={handleSubmit}
               disabled={isSubmitting || !name.trim() || (isSelectType && options.length === 0)}
-              className="rounded-md bg-custom-primary-100 px-3 py-1.5 text-sm font-medium text-white hover:bg-custom-primary-200 disabled:opacity-50 transition-colors"
+              loading={isSubmitting}
             >
-              {isSubmitting
-                ? isEdit
-                  ? "Updating..."
-                  : "Creating..."
-                : isEdit
-                  ? "Update"
-                  : "Create"}
-            </button>
+              {isEdit ? "Update" : "Create"}
+            </Button>
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 };

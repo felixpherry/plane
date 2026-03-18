@@ -5,20 +5,23 @@
 @source "../../packages/ui/src/**/*.{js,ts,jsx,tsx}";
 
 @theme inline {
-  --color-green-50: #f0fdf4;
-  --color-green-100: #dcfce7;
+  /* Success */
+  --color-green-50: rgba(34, 197, 94, 0.1);
+  --color-green-100: rgba(34, 197, 94, 0.2);
   --color-green-300: #86efac;
   --color-green-500: #22c55e;
   --color-green-600: #16a34a;
 
-  --color-red-50: #fef2f2;
-  --color-red-100: #fee2e2;
+  /* Danger */
+  --color-red-50: rgba(239, 68, 68, 0.1);
+  --color-red-100: rgba(239, 68, 68, 0.2);
   --color-red-300: #fca5a5;
   --color-red-500: #ef4444;
   --color-red-600: #dc2626;
 
-  --color-amber-50: #fffbeb;
-  --color-amber-100: #fef3c7;
+  /* Warning */
+  --color-amber-50: rgba(245, 158, 11, 0.1);
+  --color-amber-100: rgba(245, 158, 11, 0.2);
   --color-amber-300: #fcd34d;
   --color-amber-500: #f59e0b;
   --color-amber-600: #d97706;
