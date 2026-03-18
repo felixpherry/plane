@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Popover } from "@headlessui/react";
-import { Type, Hash, List, Calendar, CheckSquare, Link2, Check } from "lucide-react";
+import { Type, Hash, List, CheckSquare, Link2, Check } from "lucide-react";
 import { Input } from "@plane/ui";
 import { renderFormattedPayloadDate } from "@plane/utils";
 import type { ICustomField } from "@plane/types";
@@ -35,62 +35,39 @@ const InlineFieldInput = ({
   onChange: (val: string) => void;
   type?: "text" | "number" | "url";
   placeholder?: string;
-}) => {
-  const [localValue, setLocalValue] = useState(value);
-  const inputRef = useRef<HTMLInputElement>(null);
+}) => (
+  <Popover className="relative h-full">
+    {({ close }) => (
+      <>
+        <Popover.Button className="text-custom-text-100 flex h-full cursor-pointer items-center justify-between gap-1 rounded-sm border-[0.5px] border-strong px-2 py-0.5 text-caption-sm-regular hover:bg-layer-1">
+          <Icon className="h-3 w-3 shrink-0" />
+          <span className="text-body-xs-medium whitespace-nowrap">
+            {value ? <span className="max-w-24 truncate">{value}</span> : `Add ${label}`}
+          </span>
+        </Popover.Button>
 
-  const handleSubmit = (close: () => void) => {
-    onChange(localValue);
-    close();
-  };
-
-  return (
-    <Popover className="relative h-full">
-      {({ close }) => (
-        <>
-          <Popover.Button className="text-custom-text-100 flex h-full cursor-pointer items-center justify-between gap-1 rounded-sm border-[0.5px] border-strong px-2 py-0.5 text-caption-sm-regular hover:bg-layer-1">
-            <Icon className="h-3 w-3 shrink-0" />
-            <span className="whitespace-nowrap">
-              {value ? <span className="inline-block max-w-24 truncate">{value}</span> : `Add ${label}`}
-            </span>
-          </Popover.Button>
-
-          <Popover.Panel className="absolute left-0 z-20 mt-1 w-56 rounded-md border-[0.5px] border-strong bg-surface-1 p-2 shadow-raised-200">
-            <div className="flex items-center gap-2">
-              <Input
-                ref={inputRef}
-                type={type}
-                mode="primary"
-                inputSize="sm"
-                className="flex-1"
-                placeholder={placeholder || `Enter ${label.toLowerCase()}`}
-                value={localValue}
-                onChange={(e) => setLocalValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleSubmit(close);
-                  }
-                  if (e.key === "Escape") {
-                    setLocalValue(value);
-                    close();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="text-custom-text-300 hover:bg-custom-background-80 hover:text-custom-text-200 shrink-0 rounded p-1 transition-colors"
-                onClick={() => handleSubmit(close)}
-              >
-                <Check className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </Popover.Panel>
-        </>
-      )}
-    </Popover>
-  );
-};
+        <Popover.Panel className="absolute left-0 z-20 mt-1 min-w-56 rounded-md border-[0.5px] border-strong bg-surface-1 p-2 shadow-raised-200">
+          <Input
+            type={type}
+            mode="primary"
+            inputSize="sm"
+            className="w-full"
+            placeholder={placeholder || `Enter ${label.toLowerCase()}`}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === "Escape") {
+                e.preventDefault();
+                close();
+              }
+            }}
+            autoFocus
+          />
+        </Popover.Panel>
+      </>
+    )}
+  </Popover>
+);
 
 export const CustomFieldProperties = ({ workspaceSlug, projectId, customFieldValues, onCustomFieldChange }: Props) => {
   const [fields, setFields] = useState<ICustomField[]>([]);
@@ -171,7 +148,7 @@ export const CustomFieldProperties = ({ workspaceSlug, projectId, customFieldVal
                   onClick={() => onCustomFieldChange(field.id, !value)}
                 >
                   <CheckSquare className="h-3 w-3 shrink-0" />
-                  <span className="whitespace-nowrap">{field.name}</span>
+                  <span className="text-body-xs-medium whitespace-nowrap">{field.name}</span>
                   {!!value && <Check className="text-custom-primary-100 h-3 w-3 shrink-0" />}
                 </button>
               </div>
