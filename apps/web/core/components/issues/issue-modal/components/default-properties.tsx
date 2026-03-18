@@ -34,6 +34,7 @@ import { useUserPermissions } from "@/hooks/store/user";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web components
 import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
+import { CustomFieldProperties } from "./custom-field-properties";
 
 type TIssueDefaultPropertiesProps = {
   control: Control<TIssue>;
@@ -47,6 +48,8 @@ type TIssueDefaultPropertiesProps = {
   isDraft: boolean;
   handleFormChange: () => void;
   setSelectedParentIssue: (issue: ISearchIssueResponse) => void;
+  customFieldValues: Record<string, unknown>;
+  onCustomFieldChange: (fieldId: string, value: unknown) => void;
 };
 
 export const IssueDefaultProperties = observer(function IssueDefaultProperties(props: TIssueDefaultPropertiesProps) {
@@ -62,6 +65,8 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
     isDraft,
     handleFormChange,
     setSelectedParentIssue,
+    customFieldValues,
+    onCustomFieldChange,
   } = props;
   // states
   const [parentIssueListModalOpen, setParentIssueListModalOpen] = useState(false);
@@ -316,11 +321,20 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
             className="flex h-full cursor-pointer items-center justify-between gap-1 rounded-sm border-[0.5px] border-strong px-2 py-0.5 text-caption-sm-regular hover:bg-layer-1"
             onClick={() => setParentIssueListModalOpen(true)}
           >
-            <ParentPropertyIcon className="h-3 w-3 flex-shrink-0" />
+            <ParentPropertyIcon className="h-3 w-3 shrink-0" />
             <span className="whitespace-nowrap">{t("add_parent")}</span>
           </button>
         )}
       </div>
+      {projectId && workspaceSlug && (
+        <CustomFieldProperties
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          customFieldValues={customFieldValues}
+          onCustomFieldChange={onCustomFieldChange}
+        />
+      )}
+
       <Controller
         control={control}
         name="parent_id"

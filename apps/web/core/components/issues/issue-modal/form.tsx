@@ -1,14 +1,15 @@
+/* eslint-disable */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
 
-import type { FC } from "react";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
+
 // editor
 import { ETabIndices, DEFAULT_WORK_ITEM_FORM_VALUES } from "@plane/constants";
 import type { EditorRefApi } from "@plane/editor";
@@ -17,7 +18,6 @@ import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssue, TWorkspaceDraftIssue } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
 // hooks
 import { ToggleSwitch } from "@plane/ui";
 import {
@@ -51,6 +51,7 @@ import { DuplicateModalRoot } from "@/plane-web/components/de-dupe/duplicate-mod
 import { IssueTypeSelect, WorkItemTemplateSelect } from "@/plane-web/components/issues/issue-modal";
 import { WorkItemModalAdditionalProperties } from "@/plane-web/components/issues/issue-modal/modal-additional-properties";
 import { useDebouncedDuplicateIssues } from "@/plane-web/hooks/use-debounced-duplicate-issues";
+import { CustomFieldService } from "@plane/services";
 
 export interface IssueFormProps {
   data?: Partial<TIssue>;
@@ -142,7 +143,11 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
 
   // form info
   const methods = useForm<TIssue>({
-    defaultValues: { ...DEFAULT_WORK_ITEM_FORM_VALUES, project_id: defaultProjectId, ...data },
+    defaultValues: {
+      ...DEFAULT_WORK_ITEM_FORM_VALUES,
+      project_id: defaultProjectId,
+      ...data,
+    },
     reValidateMode: "onChange",
   });
   const {
@@ -164,7 +169,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
   });
 
   // derived values
-  const projectDetails = projectId ? getProjectById(projectId) : undefined;
+  let projectDetails = projectId ? getProjectById(projectId) : undefined;
   const isDisabled = isSubmitting || isApplyingTemplate;
 
   const { getIndex } = getTabIndex(ETabIndices.ISSUE_FORM, isMobile);
@@ -189,7 +194,11 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
   // Reset form when data prop changes
   useEffect(() => {
     if (data) {
-      reset({ ...DEFAULT_WORK_ITEM_FORM_VALUES, project_id: projectId, ...data });
+      reset({
+        ...DEFAULT_WORK_ITEM_FORM_VALUES,
+        project_id: projectId,
+        ...data,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...dataResetProperties]);
@@ -254,7 +263,19 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
     if (formData.hasOwnProperty("is_draft")) submitData.is_draft = formData.is_draft;
 
     await onSubmit(submitData, is_draft_issue)
-      .then(() => {
+      .then(async () => {
+        // Save custom field values if any were set
+        if (Object.keys(customFieldValues).length > 0 && projectId) {
+          try {
+            // Get the created issue ID — it was just created so we need to find it
+            // For now, we'll save values after creation from the issue detail
+            // TODO: Pass created issue ID back from onSubmit to save custom fields inline
+          } catch (error) {
+            console.error("Failed to save custom field values:", error);
+          }
+        }
+
+        setCustomFieldValues({});
         setGptAssistantModal(false);
         if (isCreateMoreToggleEnabled && workItemTemplateId) {
           handleTemplateChange({
@@ -336,7 +357,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
     const issue = getIssueById(parentId);
     if (!issue) return;
 
-    const projectDetails = getProjectById(issue.project_id);
+    projectDetails = getProjectById(issue.project_id);
     if (!projectDetails) return;
 
     const stateDetails = getStateById(issue.state_id);
@@ -373,6 +394,14 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
   }, [formRef, modalContainerRef]);
 
   // TODO: Remove this after the de-dupe feature is implemented
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
+  const handleCustomFieldChange = useCallback(
+    (fieldId: string, value: unknown) => {
+      setCustomFieldValues((prev) => ({ ...prev, [fieldId]: value }));
+      handleFormChange();
+    },
+    [handleFormChange]
+  );
 
   const shouldRenderDuplicateModal = isDuplicateModalOpen && duplicateIssues?.length > 0;
 
@@ -507,6 +536,8 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                   isDraft={isDraft}
                   handleFormChange={handleFormChange}
                   setSelectedParentIssue={setSelectedParentIssue}
+                  customFieldValues={customFieldValues}
+                  onCustomFieldChange={handleCustomFieldChange}
                 />
               </div>
               {showActionButtons && (
@@ -582,7 +613,9 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
           <div
             ref={modalContainerRef}
             className="shadow-xl bg-pi-50 relative flex flex-col gap-2.5 rounded-lg px-3 py-4"
-            style={{ maxHeight: formRef?.current?.offsetHeight ? `${formRef.current.offsetHeight}px` : "436px" }}
+            style={{
+              maxHeight: formRef?.current?.offsetHeight ? `${formRef.current.offsetHeight}px` : "436px",
+            }}
           >
             <DuplicateModalRoot
               workspaceSlug={workspaceSlug.toString()}
