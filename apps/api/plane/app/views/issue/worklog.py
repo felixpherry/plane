@@ -132,7 +132,7 @@ class WorklogViewSet(BaseViewSet):
 class TimerStartEndpoint(BaseAPIView):
     """Start a timer on an issue. Auto-stops any running timer."""
 
-    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def post(self, request, slug):
         serializer = TimerStartSerializer(data=request.data)
         if not serializer.is_valid():
@@ -186,7 +186,7 @@ class TimerStartEndpoint(BaseAPIView):
 class TimerStopEndpoint(BaseAPIView):
     """Stop the current running timer and create a worklog entry."""
 
-    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def post(self, request, slug):
         workspace = Workspace.objects.get(slug=slug)
 
@@ -220,7 +220,7 @@ class TimerStopEndpoint(BaseAPIView):
 class TimerActiveEndpoint(BaseAPIView):
     """Get the currently running timer for the authenticated user."""
 
-    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):
         workspace = Workspace.objects.get(slug=slug)
 
@@ -245,7 +245,7 @@ class TimerActiveEndpoint(BaseAPIView):
 class TimerDiscardEndpoint(BaseAPIView):
     """Discard the current timer without creating a worklog."""
 
-    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def post(self, request, slug):
         workspace = Workspace.objects.get(slug=slug)
 
