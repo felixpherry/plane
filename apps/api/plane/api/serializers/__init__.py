@@ -66,3 +66,10 @@ from .custom_field import (
     CustomFieldValueSerializer,
     CustomFieldValueCreateSerializer,
 )
+from .worklog import (
+    WorklogSerializer,
+    WorklogCreateSerializer,
+    WorklogLiteSerializer,
+    ActiveTimerSerializer,
+    TimerStartSerializer,
+)
