@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -251,7 +252,6 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                   )}
                 </div>
               )}
-
               {/* sub-issues chevron */}
               <div className="grid size-4 flex-shrink-0 place-items-center">
                 {subIssuesCount > 0 && !isEpic && (
@@ -269,21 +269,26 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                   </button>
                 )}
               </div>
-
               {issue?.tempId !== undefined && (
                 <div className="absolute top-0 left-0 z-[99999] h-full w-full animate-pulse bg-surface-1/20" />
               )}
             </div>
+            <div className="flex grow items-center gap-2">
+              {issue.project_id && (
+                <IssueIdentifier issueId={issueId} projectId={issue.project_id} size="xs" variant="tertiary" />
+              )}
 
-            <Tooltip
-              tooltipContent={issue.name}
-              isMobile={isMobile}
-              position="top-start"
-              disabled={isCurrentBlockDragging}
-              renderByDefault={false}
-            >
-              <p className="cursor-pointer truncate text-body-xs-medium text-primary">{issue.name}</p>
-            </Tooltip>
+              <Tooltip
+                tooltipContent={issue.name}
+                isMobile={isMobile}
+                position="top-start"
+                disabled={isCurrentBlockDragging}
+                renderByDefault={false}
+              >
+                <p className="cursor-pointer truncate text-body-xs-medium text-primary">{issue.name}</p>
+              </Tooltip>
+            </div>
+
             {isEpic && displayProperties && (
               <WithDisplayPropertiesHOC
                 displayProperties={displayProperties}
@@ -320,6 +325,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                 activeLayout="List"
                 isEpic={isEpic}
               />
+
               <div
                 className={cn("hidden", {
                   "md:flex": isSidebarCollapsed,

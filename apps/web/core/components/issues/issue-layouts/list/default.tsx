@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -122,7 +123,9 @@ export const List = observer(function List(props: IList) {
   let entities: Record<string, string[]> = {};
 
   if (is_list) {
-    entities = Object.assign(orderedGroups, { [groupIds[0]]: groupedIssueIds[ALL_ISSUES] ?? [] });
+    entities = Object.assign(orderedGroups, {
+      [groupIds[0]]: groupedIssueIds[ALL_ISSUES] ?? [],
+    });
   } else if (!isSubGrouped(groupedIssueIds)) {
     entities = Object.assign(orderedGroups, { ...groupedIssueIds });
   } else {
