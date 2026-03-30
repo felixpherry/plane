@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Popover } from "@headlessui/react";
 import { Type, Hash, List, CheckSquare, Link2, Check } from "lucide-react";
 import { Input } from "@plane/ui";
-import { renderFormattedPayloadDate } from "@plane/utils";
+import { cn, renderFormattedPayloadDate } from "@plane/utils";
 import type { ICustomField } from "@plane/types";
 import { CustomFieldService } from "@plane/services";
 import { CustomFieldSelectInput } from "@/components/issues/issue-detail/custom-fields/field-inputs";
@@ -20,6 +20,7 @@ type Props = {
   projectId: string | null;
   customFieldValues: Record<string, unknown>;
   onCustomFieldChange: (fieldId: string, value: unknown) => void;
+  invalidCustomFields: Set<string>;
 };
 
 // Popover input for text/number/url fields
@@ -71,7 +72,13 @@ const InlineFieldInput = ({
   </Popover>
 );
 
-export const CustomFieldProperties = ({ workspaceSlug, projectId, customFieldValues, onCustomFieldChange }: Props) => {
+export const CustomFieldProperties = ({
+  workspaceSlug,
+  projectId,
+  customFieldValues,
+  onCustomFieldChange,
+  invalidCustomFields,
+}: Props) => {
   const [fields, setFields] = useState<ICustomField[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const showLoading = useSpinDelay(isLoading, {
@@ -96,6 +103,10 @@ export const CustomFieldProperties = ({ workspaceSlug, projectId, customFieldVal
     fetchFields();
   }, [fetchFields]);
 
+  function getCustomFieldById(id: string) {
+    return fields.find((field) => field.id === id);
+  }
+
   if (showLoading) {
     return (
       <>
@@ -114,116 +125,119 @@ export const CustomFieldProperties = ({ workspaceSlug, projectId, customFieldVal
   }
   if (fields.length === 0) return null;
 
+  function renderField(field: ICustomField) {
+    const value = customFieldValues[field.id];
+    switch (field.field_type) {
+      case "select":
+        return (
+          <CustomFieldSelectInput
+            value={(value as string) || ""}
+            options={field.options || []}
+            onChange={(val) => onCustomFieldChange(field.id, val)}
+            fieldName={field.name}
+            buttonVariant="border-with-text"
+            buttonClassName="text-caption-sm-regular text-custom-text-100"
+            prependIcon={<List className="h-3 w-3" />}
+          />
+        );
+
+      case "multi_select":
+        return (
+          <CustomFieldSelectInput
+            value={(value as string[]) || []}
+            options={field.options || []}
+            onChange={(val) => onCustomFieldChange(field.id, val)}
+            fieldName={field.name}
+            multiple
+            buttonVariant="border-with-text"
+            buttonClassName="text-caption-sm-regular text-custom-text-100"
+            prependIcon={<List className="h-3 w-3" />}
+          />
+        );
+
+      case "date":
+        return (
+          <DateDropdown
+            value={value ? new Date(value as string) : null}
+            onChange={(date) => {
+              onCustomFieldChange(field.id, date ? renderFormattedPayloadDate(date) : null);
+            }}
+            buttonVariant="border-with-text"
+            placeholder={`Add ${field.name}`}
+          />
+        );
+
+      case "checkbox":
+        return (
+          <button
+            type="button"
+            className="text-custom-text-100 flex h-full cursor-pointer items-center justify-between gap-1 rounded-sm border-[0.5px] border-strong px-2 py-0.5 text-caption-sm-regular hover:bg-layer-1"
+            onClick={() => onCustomFieldChange(field.id, !value)}
+          >
+            <CheckSquare className="h-3 w-3 shrink-0" />
+            <span className="text-body-xs-medium whitespace-nowrap">{field.name}</span>
+            {!!value && <Check className="text-custom-primary-100 h-3 w-3 shrink-0" />}
+          </button>
+        );
+
+      case "text":
+        return (
+          <InlineFieldInput
+            icon={Type}
+            label={field.name}
+            value={(value as string) || ""}
+            onChange={(val) => onCustomFieldChange(field.id, val)}
+            type="text"
+          />
+        );
+
+      case "number":
+        return (
+          <InlineFieldInput
+            icon={Hash}
+            label={field.name}
+            value={value !== undefined && value !== null ? String(value) : ""}
+            onChange={(val) => onCustomFieldChange(field.id, val ? Number(val) : null)}
+            type="number"
+          />
+        );
+
+      case "url":
+        return (
+          <InlineFieldInput
+            icon={Link2}
+            label={field.name}
+            value={(value as string) || ""}
+            onChange={(val) => onCustomFieldChange(field.id, val)}
+            type="url"
+            placeholder="https://"
+          />
+        );
+
+      default:
+        return null;
+    }
+  }
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {fields.map((field) => {
-        const value = customFieldValues[field.id];
-
-        switch (field.field_type) {
-          case "select":
-            return (
-              <div key={field.id} className="h-7">
-                <CustomFieldSelectInput
-                  value={(value as string) || ""}
-                  options={field.options || []}
-                  onChange={(val) => onCustomFieldChange(field.id, val)}
-                  fieldName={field.name}
-                  buttonVariant="border-with-text"
-                  buttonClassName="text-caption-sm-regular text-custom-text-100"
-                  prependIcon={<List className="h-3 w-3" />}
-                />
-              </div>
-            );
-
-          case "multi_select":
-            return (
-              <div key={field.id} className="h-7">
-                <CustomFieldSelectInput
-                  value={(value as string[]) || []}
-                  options={field.options || []}
-                  onChange={(val) => onCustomFieldChange(field.id, val)}
-                  fieldName={field.name}
-                  multiple
-                  buttonVariant="border-with-text"
-                  buttonClassName="text-caption-sm-regular text-custom-text-100"
-                  prependIcon={<List className="h-3 w-3" />}
-                />
-              </div>
-            );
-
-          case "date":
-            return (
-              <div key={field.id} className="h-7">
-                <DateDropdown
-                  value={value ? new Date(value as string) : null}
-                  onChange={(date) => {
-                    onCustomFieldChange(field.id, date ? renderFormattedPayloadDate(date) : null);
-                  }}
-                  buttonVariant="border-with-text"
-                  placeholder={`Add ${field.name}`}
-                />
-              </div>
-            );
-
-          case "checkbox":
-            return (
-              <div key={field.id} className="h-7">
-                <button
-                  type="button"
-                  className="text-custom-text-100 flex h-full cursor-pointer items-center justify-between gap-1 rounded-sm border-[0.5px] border-strong px-2 py-0.5 text-caption-sm-regular hover:bg-layer-1"
-                  onClick={() => onCustomFieldChange(field.id, !value)}
-                >
-                  <CheckSquare className="h-3 w-3 shrink-0" />
-                  <span className="text-body-xs-medium whitespace-nowrap">{field.name}</span>
-                  {!!value && <Check className="text-custom-primary-100 h-3 w-3 shrink-0" />}
-                </button>
-              </div>
-            );
-
-          case "text":
-            return (
-              <div key={field.id} className="h-7">
-                <InlineFieldInput
-                  icon={Type}
-                  label={field.name}
-                  value={(value as string) || ""}
-                  onChange={(val) => onCustomFieldChange(field.id, val)}
-                  type="text"
-                />
-              </div>
-            );
-
-          case "number":
-            return (
-              <div key={field.id} className="h-7">
-                <InlineFieldInput
-                  icon={Hash}
-                  label={field.name}
-                  value={value !== undefined && value !== null ? String(value) : ""}
-                  onChange={(val) => onCustomFieldChange(field.id, val ? Number(val) : null)}
-                  type="number"
-                />
-              </div>
-            );
-
-          case "url":
-            return (
-              <div key={field.id} className="h-7">
-                <InlineFieldInput
-                  icon={Link2}
-                  label={field.name}
-                  value={(value as string) || ""}
-                  onChange={(val) => onCustomFieldChange(field.id, val)}
-                  type="url"
-                  placeholder="https://"
-                />
-              </div>
-            );
-
-          default:
-            return null;
-        }
-      })}
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {fields.map((field) => (
+          <div
+            key={field.id}
+            className={cn("h-7", invalidCustomFields.has(field.id) && "[&_button]:border-danger-primary")}
+          >
+            {renderField(field)}
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-col gap-2">
+        {Array.from(invalidCustomFields).map((fieldId) => (
+          <span className="text-caption-sm-medium text-danger-primary">
+            {getCustomFieldById(fieldId)?.name} is required
+          </span>
+        ))}
+      </div>
     </div>
   );
 };

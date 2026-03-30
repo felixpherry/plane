@@ -338,6 +338,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
 
   // TODO: Remove this after the de-dupe feature is implemented
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
+  const [invalidCustomFields, setInvalidCustomFields] = useState<Set<string>>(new Set());
 
   const [customFields, setCustomFields] = useState<ICustomField[]>([]);
   const handleFormSubmit = async (formData: Partial<TIssue>, is_draft_issue = false) => {
@@ -351,20 +352,14 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
       return;
     }
 
-    // check for required properties validation
-    if (
-      !handlePropertyValuesValidation({
-        projectId: projectId,
-        workspaceSlug: workspaceSlug?.toString(),
-        watch: watch,
-      })
-    )
-      return;
+    const isCustomFieldsValid = validateCustomFields();
+    const isPropertiesValid = handlePropertyValuesValidation({
+      projectId: projectId,
+      workspaceSlug: workspaceSlug?.toString(),
+      watch: watch,
+    });
 
-    // check for required custom fields validation
-    if (!validateCustomFields()) return;
-
-    // ... rest stays the same
+    if (!isPropertiesValid || !isCustomFieldsValid) return;
 
     // check for required properties validation
     if (
@@ -428,11 +423,10 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
 
   const validateCustomFields = useCallback((): boolean => {
     const mandatoryFields = customFields.filter((f) => f.is_required);
-    const missingFields: string[] = [];
+    const missing = new Set<string>();
 
     for (const field of mandatoryFields) {
       const value = customFieldValues[field.id];
-
       const isEmpty =
         value === undefined ||
         value === null ||
@@ -440,28 +434,23 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
         (Array.isArray(value) && value.length === 0) ||
         value === false;
 
-      if (isEmpty) {
-        missingFields.push(field.name);
-      }
+      if (isEmpty) missing.add(field.id);
     }
 
-    if (missingFields.length > 0) {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: t("error"),
-        message: `Required custom fields missing: ${missingFields.join(", ")}`,
-      });
-      return false;
-    }
-
-    return true;
-  }, [customFields, customFieldValues, t]);
+    setInvalidCustomFields(missing);
+    return missing.size === 0;
+  }, [customFields, customFieldValues]);
 
   const handleCustomFieldChange = useCallback(
     (fieldId: string, value: unknown) => {
       setCustomFieldValues((prev) => ({ ...prev, [fieldId]: value }));
-      handleFormChange();
+      setInvalidCustomFields((prev) => {
+        const next = new Set(prev);
+        next.delete(fieldId);
+        return next;
+      });
     },
+
     [handleFormChange]
   );
 
@@ -605,6 +594,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                     projectId={projectId}
                     customFieldValues={customFieldValues}
                     onCustomFieldChange={handleCustomFieldChange}
+                    invalidCustomFields={invalidCustomFields}
                   />
                 )}
               </div>
