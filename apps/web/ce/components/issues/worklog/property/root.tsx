@@ -213,15 +213,13 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
       {/* Total tracked time */}
       <SidebarPropertyListItem icon={Clock} label="Time tracked">
         <div className="flex h-7.5 w-full items-center justify-between">
-          <span className="text-body-xs-medium">
-            {totalDuration > 0 ? formatDuration(totalDuration) : "None"}
-          </span>
+          <span className="text-body-xs-medium">{totalDuration > 0 ? formatDuration(totalDuration) : "None"}</span>
         </div>
       </SidebarPropertyListItem>
 
       {/* Action buttons */}
       {view === "idle" && !disabled && (
-        <div className="flex items-center gap-2 pl-[calc(theme(spacing.5)+theme(spacing.5))]">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline-primary"
             size="sm"
@@ -243,22 +241,15 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
 
       {/* Timer running */}
       {view === "timer-running" && (
-        <div className="ml-[calc(theme(spacing.5)+theme(spacing.5))] rounded-md border-[0.5px] border-subtle bg-surface-2 p-3">
+        <div className="rounded-md border-[0.5px] border-subtle bg-surface-2 p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Timer className="h-4 w-4 text-custom-primary-100 animate-pulse" />
-              <span className="font-mono text-lg font-semibold text-primary">
-                {formatSeconds(elapsed)}
-              </span>
+              <Timer className="text-custom-primary-100 h-4 w-4 animate-pulse" />
+              <span className="font-mono text-lg font-semibold text-primary">{formatSeconds(elapsed)}</span>
             </div>
           </div>
           <div className="mt-3 flex items-center gap-2">
-            <Button
-              variant="primary"
-              size="sm"
-              prependIcon={<Square className="h-3 w-3" />}
-              onClick={handleStopTimer}
-            >
+            <Button variant="primary" size="sm" prependIcon={<Square className="h-3 w-3" />} onClick={handleStopTimer}>
               Stop
             </Button>
             <Button
@@ -275,10 +266,10 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
 
       {/* Manual log form */}
       {view === "manual-form" && (
-        <div className="ml-[calc(theme(spacing.5)+theme(spacing.5))] rounded-md border-[0.5px] border-subtle bg-surface-2 p-3">
+        <div className="rounded-md border-[0.5px] border-subtle bg-surface-2 p-3">
           <div className="flex items-center gap-2">
             <div className="flex-1">
-              <span className="mb-1 block text-xs text-custom-text-300">Hours</span>
+              <span className="text-xs text-custom-text-300 mb-1 block">Hours</span>
               <Input
                 type="number"
                 mode="primary"
@@ -292,7 +283,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
               />
             </div>
             <div className="flex-1">
-              <span className="mb-1 block text-xs text-custom-text-300">Minutes</span>
+              <span className="text-xs text-custom-text-300 mb-1 block">Minutes</span>
               <Input
                 type="number"
                 mode="primary"
@@ -307,7 +298,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
             </div>
           </div>
           <div className="mt-2">
-            <span className="mb-1 block text-xs text-custom-text-300">Description</span>
+            <span className="text-xs text-custom-text-300 mb-1 block">Description</span>
             <Input
               mode="primary"
               inputSize="sm"
@@ -345,7 +336,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
 
       {/* Worklog history */}
       {worklogs.length > 0 && (
-        <div className="ml-[calc(theme(spacing.5)+theme(spacing.5))] mt-1 space-y-1">
+        <div className="mt-1 space-y-1">
           {worklogs.slice(0, 5).map((worklog) => (
             <div key={worklog.id} className="group">
               {editingId === worklog.id ? (
@@ -391,24 +382,24 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
                     />
                   </div>
                   <div className="mt-2 flex items-center justify-end gap-2">
-                    <Button variant="neutral-primary" size="sm" onClick={() => setEditingId(null)}>Cancel</Button>
-                    <Button variant="primary" size="sm" onClick={() => handleEditSubmit(worklog.id)}>Save</Button>
+                    <Button variant="neutral-primary" size="sm" onClick={() => setEditingId(null)}>
+                      Cancel
+                    </Button>
+                    <Button variant="primary" size="sm" onClick={() => handleEditSubmit(worklog.id)}>
+                      Save
+                    </Button>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between rounded-sm px-1.5 py-1 hover:bg-custom-background-80 transition-colors">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs font-medium text-primary shrink-0">
+                <div className="hover:bg-custom-background-80 flex items-center justify-between rounded-sm px-1.5 py-1 transition-colors">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="text-xs shrink-0 font-medium text-primary">
                       {worklog.display_duration || formatDuration(worklog.duration)}
                     </span>
                     {worklog.description && (
-                      <span className="text-xs text-custom-text-300 truncate">
-                        — {worklog.description}
-                      </span>
+                      <span className="text-xs text-custom-text-300 truncate">— {worklog.description}</span>
                     )}
-                    {worklog.source === "timer" && (
-                      <Timer className="h-2.5 w-2.5 text-custom-text-400 shrink-0" />
-                    )}
+                    {worklog.source === "timer" && <Timer className="text-custom-text-400 h-2.5 w-2.5 shrink-0" />}
                   </div>
                   {!disabled && (
                     <CustomMenu
@@ -420,7 +411,10 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
                       <CustomMenu.MenuItem onClick={() => startEdit(worklog)} className="flex items-center gap-2">
                         <Pencil className="h-3 w-3" /> Edit
                       </CustomMenu.MenuItem>
-                      <CustomMenu.MenuItem onClick={() => handleDelete(worklog.id)} className="flex items-center gap-2 text-red-500">
+                      <CustomMenu.MenuItem
+                        onClick={() => handleDelete(worklog.id)}
+                        className="flex items-center gap-2 text-red-500"
+                      >
                         <Trash2 className="h-3 w-3" /> Delete
                       </CustomMenu.MenuItem>
                     </CustomMenu>
@@ -430,9 +424,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
             </div>
           ))}
           {worklogs.length > 5 && (
-            <span className="block px-1.5 text-xs text-custom-text-400">
-              +{worklogs.length - 5} more entries
-            </span>
+            <span className="text-xs text-custom-text-400 block px-1.5">+{worklogs.length - 5} more entries</span>
           )}
         </div>
       )}
