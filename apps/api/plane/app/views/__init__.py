@@ -148,6 +148,14 @@ from .issue.custom_field import (
     CustomFieldValueDetailEndpoint,
 )
 
+from .issue.worklog import (
+    WorklogViewSet,
+    TimerStartEndpoint,
+    TimerStopEndpoint,
+    TimerActiveEndpoint,
+    TimerDiscardEndpoint,
+)
+
 from .issue.link import IssueLinkViewSet
 
 from .issue.relation import IssueRelationViewSet
