@@ -21,6 +21,7 @@ type Props = {
   customFieldValues: Record<string, unknown>;
   onCustomFieldChange: (fieldId: string, value: unknown) => void;
   invalidCustomFields: Set<string>;
+  onFieldsChange?: (fields: ICustomField[]) => void;
 };
 
 // Popover input for text/number/url fields
@@ -78,6 +79,7 @@ export const CustomFieldProperties = ({
   customFieldValues,
   onCustomFieldChange,
   invalidCustomFields,
+  onFieldsChange,
 }: Props) => {
   const [fields, setFields] = useState<ICustomField[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -102,6 +104,10 @@ export const CustomFieldProperties = ({
   useEffect(() => {
     fetchFields();
   }, [fetchFields]);
+
+  useEffect(() => {
+    onFieldsChange?.(fields.filter((field) => field.is_active));
+  }, [fields, onFieldsChange]);
 
   function getCustomFieldById(id: string) {
     return fields.find((field) => field.id === id);
@@ -233,7 +239,7 @@ export const CustomFieldProperties = ({
       </div>
       <div className="flex flex-col gap-2">
         {Array.from(invalidCustomFields).map((fieldId) => (
-          <span className="text-caption-sm-medium text-danger-primary">
+          <span key={fieldId} className="text-caption-sm-medium text-danger-primary">
             {getCustomFieldById(fieldId)?.name} is required
           </span>
         ))}

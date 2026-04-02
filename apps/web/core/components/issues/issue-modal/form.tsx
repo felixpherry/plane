@@ -61,6 +61,10 @@ export interface IssueFormProps {
   onAssetUpload: (assetId: string) => void;
   onCreateMoreToggleChange: (value: boolean) => void;
   onChange?: (formData: Partial<TIssue> | null) => void;
+  customFields?: ICustomField[];
+  customFieldValues?: Record<string, unknown>;
+  onCustomFieldValuesChange?: (values: Record<string, unknown>) => void;
+  onCustomFieldsChange?: (fields: ICustomField[]) => void;
   onClose: () => void;
   onSubmit: (values: Partial<TIssue>, is_draft_issue?: boolean) => Promise<void>;
   projectId: string;
@@ -86,6 +90,8 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
     issueTitleRef,
     onAssetUpload,
     onChange,
+    onCustomFieldValuesChange,
+    onCustomFieldsChange,
     onClose,
     onSubmit,
     projectId: defaultProjectId,
@@ -341,6 +347,15 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
   const [invalidCustomFields, setInvalidCustomFields] = useState<Set<string>>(new Set());
 
   const [customFields, setCustomFields] = useState<ICustomField[]>([]);
+
+  useEffect(() => {
+    onCustomFieldValuesChange?.(customFieldValues);
+  }, [customFieldValues, onCustomFieldValuesChange]);
+
+  useEffect(() => {
+    onCustomFieldsChange?.(customFields);
+  }, [customFields, onCustomFieldsChange]);
+
   const handleFormSubmit = async (formData: Partial<TIssue>, is_draft_issue = false) => {
     // Check if the editor is ready to discard
     if (!editorRef.current?.isEditorReadyToDiscard()) {
@@ -386,17 +401,6 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
 
     await onSubmit(submitData, is_draft_issue)
       .then(async () => {
-        // Save custom field values if any were set
-        if (Object.keys(customFieldValues).length > 0 && projectId) {
-          try {
-            // Get the created issue ID — it was just created so we need to find it
-            // For now, we'll save values after creation from the issue detail
-            // TODO: Pass created issue ID back from onSubmit to save custom fields inline
-          } catch (error) {
-            console.error("Failed to save custom field values:", error);
-          }
-        }
-
         setCustomFieldValues({});
         setGptAssistantModal(false);
         if (isCreateMoreToggleEnabled && workItemTemplateId) {
@@ -595,6 +599,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                     customFieldValues={customFieldValues}
                     onCustomFieldChange={handleCustomFieldChange}
                     invalidCustomFields={invalidCustomFields}
+                    onFieldsChange={setCustomFields}
                   />
                 )}
               </div>

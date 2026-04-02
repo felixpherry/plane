@@ -12,14 +12,18 @@ import { useParams } from "next/navigation";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssue } from "@plane/types";
+import { CustomFieldService } from "@plane/services";
 import { isEmptyHtmlString } from "@plane/utils";
 // hooks
 import { useIssueModal } from "@/hooks/context/use-issue-modal";
 import { useWorkspaceDraftIssues } from "@/hooks/store/workspace-draft";
+import { persistCustomFieldValues } from "./custom-field-values";
 // local imports
 import { ConfirmIssueDiscard } from "../confirm-issue-discard";
 import { IssueFormRoot } from "./form";
 import type { IssueFormProps } from "./form";
+
+const customFieldService = new CustomFieldService();
 
 export interface DraftIssueProps extends IssueFormProps {
   changesMade: Partial<TIssue> | null;
@@ -27,7 +31,7 @@ export interface DraftIssueProps extends IssueFormProps {
 }
 
 export const DraftIssueLayout = observer(function DraftIssueLayout(props: DraftIssueProps) {
-  const { changesMade, data, onChange, onClose, projectId } = props;
+  const { changesMade, data, onChange, onClose, projectId, customFields = [], customFieldValues = {} } = props;
   // states
   const [issueDiscardModal, setIssueDiscardModal] = useState(false);
   // router params
@@ -36,6 +40,7 @@ export const DraftIssueLayout = observer(function DraftIssueLayout(props: DraftI
   const { handleCreateUpdatePropertyValues } = useIssueModal();
   const { createIssue } = useWorkspaceDraftIssues();
   const { t } = useTranslation();
+  const hasCustomFieldValues = Object.keys(customFieldValues).length > 0;
 
   const sanitizeChanges = (): Partial<TIssue> => {
     const sanitizedChanges = { ...changesMade };
@@ -57,14 +62,16 @@ export const DraftIssueLayout = observer(function DraftIssueLayout(props: DraftI
   };
 
   const handleClose = () => {
+    const hasDraftChanges = changesMade ? !isEmpty(sanitizeChanges()) : false;
+
     // If the user is updating an existing work item, we don't need to show the discard modal
     if (data?.id) {
       onClose();
       setIssueDiscardModal(false);
     } else {
-      if (changesMade) {
+      if (hasDraftChanges || hasCustomFieldValues) {
         const sanitizedChanges = sanitizeChanges();
-        if (isEmpty(sanitizedChanges)) {
+        if (isEmpty(sanitizedChanges) && !hasCustomFieldValues) {
           onClose();
           setIssueDiscardModal(false);
         } else setIssueDiscardModal(true);
@@ -76,7 +83,7 @@ export const DraftIssueLayout = observer(function DraftIssueLayout(props: DraftI
   };
 
   const handleCreateDraftIssue = async () => {
-    if (!changesMade || !workspaceSlug || !projectId) return;
+    if ((!changesMade && !hasCustomFieldValues) || !workspaceSlug || !projectId) return;
 
     const payload = {
       ...changesMade,
@@ -86,14 +93,6 @@ export const DraftIssueLayout = observer(function DraftIssueLayout(props: DraftI
 
     const response = await createIssue(workspaceSlug.toString(), payload)
       .then((res) => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: `${t("success")}!`,
-          message: t("workspace_draft_issues.toasts.created.success"),
-        });
-        onChange(null);
-        setIssueDiscardModal(false);
-        onClose();
         return res;
       })
       .catch((_error) => {
@@ -105,19 +104,48 @@ export const DraftIssueLayout = observer(function DraftIssueLayout(props: DraftI
       });
 
     if (response && handleCreateUpdatePropertyValues) {
-      handleCreateUpdatePropertyValues({
-        issueId: response.id,
-        issueTypeId: response.type_id,
-        projectId,
-        workspaceSlug: workspaceSlug?.toString(),
-        isDraft: true,
-      });
+      try {
+        await handleCreateUpdatePropertyValues({
+          issueId: response.id,
+          issueTypeId: response.type_id,
+          projectId,
+          workspaceSlug: workspaceSlug?.toString(),
+          isDraft: true,
+        });
+
+        const customFieldSaveResult = await persistCustomFieldValues({
+          customFieldService,
+          workspaceSlug: workspaceSlug.toString(),
+          projectId,
+          issueId: response.id,
+          customFields,
+          customFieldValues,
+        });
+
+        setToast({
+          type: customFieldSaveResult.hasErrors ? TOAST_TYPE.ERROR : TOAST_TYPE.SUCCESS,
+          title: customFieldSaveResult.hasErrors ? `${t("error")}!` : `${t("success")}!`,
+          message: customFieldSaveResult.hasErrors
+            ? "Draft issue was created, but some custom field values failed to save."
+            : t("workspace_draft_issues.toasts.created.success"),
+        });
+      } catch {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: `${t("error")}!`,
+          message: "Draft issue was created, but some values failed to save.",
+        });
+      } finally {
+        onChange(null);
+        setIssueDiscardModal(false);
+        onClose();
+      }
     }
   };
 
   const handleDraftAndClose = () => {
     const sanitizedChanges = sanitizeChanges();
-    if (!data?.id && !isEmpty(sanitizedChanges)) {
+    if (!data?.id && (!isEmpty(sanitizedChanges) || hasCustomFieldValues)) {
       handleCreateDraftIssue();
     }
     onClose();

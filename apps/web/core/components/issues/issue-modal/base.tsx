@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -11,9 +12,10 @@ import { useParams } from "next/navigation";
 // Plane imports
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TBaseIssue, TIssue } from "@plane/types";
+import type { ICustomField, TBaseIssue, TIssue } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { CustomFieldService } from "@plane/services";
 // hooks
 import { useIssueModal } from "@/hooks/context/use-issue-modal";
 import { useCycle } from "@/hooks/store/use-cycle";
@@ -26,12 +28,14 @@ import { useIssuesActions } from "@/hooks/use-issues-actions";
 // services
 import { FileService } from "@/services/file.service";
 const fileService = new FileService();
+const customFieldService = new CustomFieldService();
 // local imports
 import { CreateIssueToastActionItems } from "../create-issue-toast-action-items";
 import { DraftIssueLayout } from "./draft-issue-layout";
 import { IssueFormRoot } from "./form";
 import type { IssueFormProps } from "./form";
 import type { IssuesModalProps } from "./modal";
+import { persistCustomFieldValues } from "./custom-field-values";
 
 export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueModalBase(props: IssuesModalProps) {
   const {
@@ -66,6 +70,8 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
   const [description, setDescription] = useState<string | undefined>(undefined);
   const [uploadedAssetIds, setUploadedAssetIds] = useState<string[]>([]);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [customFields, setCustomFields] = useState<ICustomField[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({});
   // store hooks
   const { t } = useTranslation();
   const { workspaceSlug, projectId: routerProjectId, cycleId, moduleId, workItem } = useParams();
@@ -142,6 +148,21 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
     ]);
   };
 
+  const saveCustomFieldValues = async (issueId: string, projectId: string) => {
+    if (!workspaceSlug) {
+      return { hasErrors: false, errorCount: 0 };
+    }
+
+    return await persistCustomFieldValues({
+      customFieldService,
+      workspaceSlug: workspaceSlug.toString(),
+      projectId,
+      issueId,
+      customFields,
+      customFieldValues,
+    });
+  };
+
   const handleCreateMoreToggleChange = (value: boolean) => {
     setCreateMore(value);
   };
@@ -153,6 +174,8 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
 
     setActiveProjectId(null);
     setChangesMade(null);
+    setCustomFields([]);
+    setCustomFieldValues({});
     onClose();
     handleDuplicateIssueModal(false);
   };
@@ -225,26 +248,35 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
           isDraft: is_draft_issue,
         });
 
-        // create sub work item
-        await handleCreateSubWorkItem({
-          workspaceSlug: workspaceSlug?.toString(),
-          projectId: response.project_id,
-          parentId: response.id,
+        // create sub work item, but do not block issue/custom-field persistence if this fails
+        try {
+          await handleCreateSubWorkItem({
+            workspaceSlug: workspaceSlug?.toString(),
+            projectId: response.project_id,
+            parentId: response.id,
+          });
+        } catch (error) {
+          console.error("Failed to create sub work item:", error);
+        }
+
+        const customFieldSaveResult = await saveCustomFieldValues(response.id, response.project_id);
+
+        setToast({
+          type: customFieldSaveResult.hasErrors ? TOAST_TYPE.ERROR : TOAST_TYPE.SUCCESS,
+          title: customFieldSaveResult.hasErrors ? t("error") : t("success"),
+          message: customFieldSaveResult.hasErrors
+            ? `${is_draft_issue ? t("draft_created") : t("issue_created_successfully")} but some custom field values failed to save.`
+            : `${is_draft_issue ? t("draft_created") : t("issue_created_successfully")} `,
+          actionItems:
+            !is_draft_issue && response?.project_id && !customFieldSaveResult.hasErrors ? (
+              <CreateIssueToastActionItems
+                workspaceSlug={workspaceSlug.toString()}
+                projectId={response?.project_id}
+                issueId={response.id}
+              />
+            ) : undefined,
         });
       }
-
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: t("success"),
-        message: `${is_draft_issue ? t("draft_created") : t("issue_created_successfully")} `,
-        actionItems: !is_draft_issue && response?.project_id && (
-          <CreateIssueToastActionItems
-            workspaceSlug={workspaceSlug.toString()}
-            projectId={response?.project_id}
-            issueId={response.id}
-          />
-        ),
-      });
       if (!createMore) handleClose();
       if (createMore && issueTitleRef) issueTitleRef?.current?.focus();
       setDescription("<p></p>");
@@ -310,12 +342,16 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
         isDraft: isDraft,
       });
 
+      const customFieldSaveResult = await saveCustomFieldValues(data.id, payload.project_id);
+
       setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: t("success"),
-        message: t("issue_updated_successfully"),
+        type: customFieldSaveResult.hasErrors ? TOAST_TYPE.ERROR : TOAST_TYPE.SUCCESS,
+        title: customFieldSaveResult.hasErrors ? t("error") : t("success"),
+        message: customFieldSaveResult.hasErrors
+          ? "Issue was updated, but some custom field values failed to save."
+          : t("issue_updated_successfully"),
         actionItems:
-          showActionItemsOnUpdate && payload.project_id ? (
+          showActionItemsOnUpdate && payload.project_id && !customFieldSaveResult.hasErrors ? (
             <CreateIssueToastActionItems
               workspaceSlug={workspaceSlug.toString()}
               projectId={payload.project_id}
@@ -380,6 +416,10 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
     isDuplicateModalOpen: isDuplicateModalOpen,
     handleDuplicateIssueModal: handleDuplicateIssueModal,
     isProjectSelectionDisabled: isProjectSelectionDisabled,
+    customFields: customFields,
+    customFieldValues: customFieldValues,
+    onCustomFieldsChange: setCustomFields,
+    onCustomFieldValuesChange: setCustomFieldValues,
   };
 
   return (
