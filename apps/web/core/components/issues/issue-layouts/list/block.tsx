@@ -273,21 +273,16 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                 <div className="absolute top-0 left-0 z-[99999] h-full w-full animate-pulse bg-surface-1/20" />
               )}
             </div>
-            <div className="flex grow items-center gap-2">
-              {issue.project_id && (
-                <IssueIdentifier issueId={issueId} projectId={issue.project_id} size="xs" variant="tertiary" />
-              )}
 
-              <Tooltip
-                tooltipContent={issue.name}
-                isMobile={isMobile}
-                position="top-start"
-                disabled={isCurrentBlockDragging}
-                renderByDefault={false}
-              >
-                <p className="cursor-pointer truncate text-body-xs-medium text-primary">{issue.name}</p>
-              </Tooltip>
-            </div>
+            <Tooltip
+              tooltipContent={issue.name}
+              isMobile={isMobile}
+              position="top-start"
+              disabled={isCurrentBlockDragging}
+              renderByDefault={false}
+            >
+              <p className="cursor-pointer truncate text-body-xs-medium text-primary">{issue.name}</p>
+            </Tooltip>
 
             {isEpic && displayProperties && (
               <WithDisplayPropertiesHOC
