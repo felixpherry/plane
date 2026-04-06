@@ -79,17 +79,19 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
   const activeProjectIdentifier = cachedActiveIssue
     ? rootStore.projectRoot.project.getProjectIdentifierById(cachedActiveIssue.project_id)
     : undefined;
+  const activeWorkspace = activeTimer ? rootStore.workspaceRoot.getWorkspaceById(activeTimer.workspace) : null;
+  const activeWorkspaceSlug = activeWorkspace?.slug ?? workspaceSlugValue;
   const workItemLink = activeTimer
-    ? workspaceSlugValue && activeProjectIdentifier && cachedActiveIssue
+    ? activeWorkspaceSlug && activeProjectIdentifier && cachedActiveIssue
       ? generateWorkItemLink({
-          workspaceSlug: workspaceSlugValue,
+          workspaceSlug: activeWorkspaceSlug,
           projectId: cachedActiveIssue.project_id,
           issueId: cachedActiveIssue.id,
           projectIdentifier: activeProjectIdentifier,
           sequenceId: cachedActiveIssue.sequence_id,
         })
-      : activeTimer.issue_identifier
-        ? `/${workspaceSlugValue}/browse/${activeTimer.issue_identifier}/`
+      : activeTimer.issue_identifier && activeWorkspaceSlug
+        ? `/${activeWorkspaceSlug}/browse/${activeTimer.issue_identifier}/`
         : null
     : null;
 
@@ -118,7 +120,7 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
   }, [applyActiveTimer, clearActiveTimer, clearActiveIssue, workspaceSlug]);
 
   const resolveActiveIssue = useCallback(async () => {
-    if (!workspaceSlug || !activeTimer) {
+    if (!activeTimer || !activeWorkspaceSlug) {
       clearActiveIssue();
       return;
     }
@@ -132,7 +134,7 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
     setIsActiveIssueLoading(true);
 
     try {
-      const issue = await issueService.retrieve(workspaceSlug, activeTimer.project, activeTimer.issue);
+      const issue = await issueService.retrieve(activeWorkspaceSlug, activeTimer.project, activeTimer.issue);
       rootStore.issue.issues.addIssue([issue]);
     } catch (issueError) {
       console.error("Failed to resolve active timer issue:", issueError);
@@ -141,7 +143,7 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
         setIsActiveIssueLoading(false);
       }
     }
-  }, [activeTimer, cachedActiveIssue, clearActiveIssue, rootStore, workspaceSlug]);
+  }, [activeTimer, activeWorkspaceSlug, cachedActiveIssue, clearActiveIssue, rootStore]);
 
   useEffect(() => {
     setLastStoppedWorklog(null);

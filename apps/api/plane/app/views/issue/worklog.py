@@ -17,6 +17,17 @@ from plane.api.serializers import (
 from plane.db.models import Worklog, ActiveTimer, Issue, IssueAssignee, Workspace
 
 
+def get_user_active_timers(user):
+    return list(
+        ActiveTimer.objects.filter(
+            user=user,
+            deleted_at__isnull=True,
+        )
+        .select_related("issue", "project", "workspace")
+        .order_by("-start_time", "-created_at", "-id")
+    )
+
+
 class WorklogViewSet(BaseViewSet):
     """CRUD for worklog entries on an issue."""
 
@@ -162,16 +173,19 @@ class TimerStartEndpoint(BaseAPIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Auto-stop any running timer for this user in this workspace
-        existing = ActiveTimer.objects.filter(
-            user=request.user,
-            workspace=workspace,
-            deleted_at__isnull=True,
-        ).first()
+        # Auto-stop any running timer for this user across all workspaces
+        active_timers = get_user_active_timers(request.user)
+        existing = active_timers[0] if active_timers else None
+        legacy_timers = active_timers[1:] if len(active_timers) > 1 else []
 
         stopped_worklog = None
         if existing:
             stopped_worklog = existing.stop()
+
+        if legacy_timers:
+            ActiveTimer.objects.filter(
+                pk__in=[timer.pk for timer in legacy_timers],
+            ).update(deleted_at=timezone.now())
 
         # Create new active timer
         active_timer = ActiveTimer.objects.create(
@@ -197,13 +211,11 @@ class TimerStopEndpoint(BaseAPIView):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def post(self, request, slug):
-        workspace = Workspace.objects.get(slug=slug)
+        Workspace.objects.get(slug=slug)
 
-        active_timer = ActiveTimer.objects.filter(
-            user=request.user,
-            workspace=workspace,
-            deleted_at__isnull=True,
-        ).first()
+        active_timers = get_user_active_timers(request.user)
+        active_timer = active_timers[0] if active_timers else None
+        legacy_timers = active_timers[1:] if len(active_timers) > 1 else []
 
         if not active_timer:
             return Response(
@@ -213,6 +225,11 @@ class TimerStopEndpoint(BaseAPIView):
 
         # Stop the timer — creates a worklog
         worklog = active_timer.stop()
+
+        if legacy_timers:
+            ActiveTimer.objects.filter(
+                pk__in=[timer.pk for timer in legacy_timers],
+            ).update(deleted_at=timezone.now())
 
         # Optionally add description from request
         description = request.data.get("description", "")
@@ -231,13 +248,17 @@ class TimerActiveEndpoint(BaseAPIView):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):
-        workspace = Workspace.objects.get(slug=slug)
+        Workspace.objects.get(slug=slug)
 
-        active_timer = ActiveTimer.objects.filter(
-            user=request.user,
-            workspace=workspace,
-            deleted_at__isnull=True,
-        ).select_related("issue", "project").first()
+        active_timer = (
+            ActiveTimer.objects.filter(
+                user=request.user,
+                deleted_at__isnull=True,
+            )
+            .select_related("issue", "project")
+            .order_by("-start_time", "-created_at", "-id")
+            .first()
+        )
 
         if not active_timer:
             return Response(
@@ -256,13 +277,11 @@ class TimerDiscardEndpoint(BaseAPIView):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def post(self, request, slug):
-        workspace = Workspace.objects.get(slug=slug)
+        Workspace.objects.get(slug=slug)
 
-        active_timer = ActiveTimer.objects.filter(
-            user=request.user,
-            workspace=workspace,
-            deleted_at__isnull=True,
-        ).first()
+        active_timers = get_user_active_timers(request.user)
+        active_timer = active_timers[0] if active_timers else None
+        legacy_timers = active_timers[1:] if len(active_timers) > 1 else []
 
         if not active_timer:
             return Response(
@@ -273,6 +292,11 @@ class TimerDiscardEndpoint(BaseAPIView):
         # Just delete the timer, don't create a worklog
         active_timer.deleted_at = timezone.now()
         active_timer.save()
+
+        if legacy_timers:
+            ActiveTimer.objects.filter(
+                pk__in=[timer.pk for timer in legacy_timers],
+            ).update(deleted_at=timezone.now())
 
         return Response(
             {"message": "Timer discarded"},

@@ -92,7 +92,7 @@ class Worklog(WorkspaceBaseModel):
 class ActiveTimer(WorkspaceBaseModel):
     """Tracks the currently running timer for a user.
 
-    Each user can have at most one active timer per workspace.
+    Each user can have at most one active timer globally.
     When a user starts a timer on a new issue, any existing
     active timer is automatically stopped and saved as a worklog.
 
@@ -128,9 +128,9 @@ class ActiveTimer(WorkspaceBaseModel):
         db_table = "active_timers"
         constraints = [
             models.UniqueConstraint(
-                fields=["user", "workspace"],
+                fields=["user"],
                 condition=Q(deleted_at__isnull=True),
-                name="active_timer_unique_user_workspace_when_not_deleted",
+                name="active_timer_unique_user_when_not_deleted",
             )
         ]
 
