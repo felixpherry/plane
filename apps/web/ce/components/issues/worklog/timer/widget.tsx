@@ -201,7 +201,7 @@ export const FloatingWorklogTimerWidget = observer(function FloatingWorklogTimer
                   transition: { delay: 0.08, duration: 0.18 },
                 }}
                 exit={{ opacity: 0, y: -6, transition: { duration: 0.12 } }}
-                className="flex flex-col gap-2"
+                className="mt-2 flex flex-col gap-2"
               >
                 <div className="flex items-center gap-2">
                   <IssueIdentifier
