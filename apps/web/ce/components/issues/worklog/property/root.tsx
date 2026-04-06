@@ -1,15 +1,15 @@
 /* eslint-disable */
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { observer } from "mobx-react";
 import { Clock, Play, Square, Trash2, Pencil, Plus, Timer } from "lucide-react";
-import { useTranslation } from "@plane/i18n";
 import { Button, Input, CustomMenu } from "@plane/ui";
-import { cn } from "@plane/utils";
-import type { IWorklog, IActiveTimer } from "@plane/types";
+import type { IWorklog } from "@plane/types";
 import { WorklogService } from "@plane/services";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
+import { useUser } from "@/hooks/store/user";
+import { useGlobalWorklogTimer } from "@/plane-web/components/issues/worklog/timer";
 
 const worklogService = new WorklogService();
 
@@ -18,9 +18,10 @@ type TIssueWorklogProperty = {
   projectId: string;
   issueId: string;
   disabled: boolean;
+  assigneeIds?: string[];
 };
 
-type TView = "idle" | "manual-form" | "timer-running" | "timer-stopped";
+type TView = "idle" | "manual-form";
 
 function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -38,19 +39,26 @@ function formatSeconds(totalSeconds: number): string {
 }
 
 export const IssueWorklogProperty = observer(function IssueWorklogProperty(props: TIssueWorklogProperty) {
-  const { workspaceSlug, projectId, issueId, disabled } = props;
-  const { t } = useTranslation();
+  const { workspaceSlug, projectId, issueId, disabled, assigneeIds = [] } = props;
+  const { data: currentUser } = useUser();
+  const {
+    activeTimer,
+    activeIssue,
+    elapsedSeconds,
+    isMutating,
+    error,
+    lastStoppedWorklog,
+    startTimer,
+    stopTimer,
+    discardTimer,
+    isActiveForIssue,
+  } = useGlobalWorklogTimer();
 
   // State
   const [view, setView] = useState<TView>("idle");
   const [worklogs, setWorklogs] = useState<IWorklog[]>([]);
   const [totalDuration, setTotalDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Timer state
-  const [activeTimer, setActiveTimer] = useState<IActiveTimer | null>(null);
-  const [elapsed, setElapsed] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Manual form state
   const [hours, setHours] = useState("");
@@ -78,46 +86,23 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
     }
   }, [workspaceSlug, projectId, issueId]);
 
-  const checkActiveTimer = useCallback(async () => {
-    if (!workspaceSlug) return;
-    try {
-      const timer = await worklogService.getActiveTimer(workspaceSlug);
-      if (timer && timer.issue === issueId) {
-        setActiveTimer(timer);
-        setElapsed(timer.elapsed_seconds || 0);
-        setView("timer-running");
-      }
-    } catch {
-      // No active timer
-    }
-  }, [workspaceSlug, issueId]);
+  useEffect(() => {
+    void fetchWorklogs();
+  }, [fetchWorklogs]);
 
   useEffect(() => {
-    fetchWorklogs();
-    checkActiveTimer();
-  }, [fetchWorklogs, checkActiveTimer]);
-
-  // Timer tick
-  useEffect(() => {
-    if (view === "timer-running" && activeTimer) {
-      timerRef.current = setInterval(() => {
-        setElapsed((prev) => prev + 1);
-      }, 1000);
+    if (lastStoppedWorklog?.issue === issueId) {
+      void fetchWorklogs();
     }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [view, activeTimer]);
+  }, [fetchWorklogs, issueId, lastStoppedWorklog]);
+
+  const isTimerActiveForCurrentIssue = isActiveForIssue(issueId);
+  const hasAnotherActiveTimer = !!activeTimer && !isTimerActiveForCurrentIssue;
+  const canUseTimer = !disabled && !!currentUser?.id && assigneeIds.includes(currentUser.id);
 
   const handleStartTimer = async () => {
     try {
-      const timer = await worklogService.startTimer(workspaceSlug, {
-        issue_id: issueId,
-        project_id: projectId,
-      });
-      setActiveTimer(timer);
-      setElapsed(0);
-      setView("timer-running");
+      await startTimer({ issueId, projectId });
     } catch (error) {
       console.error("Failed to start timer:", error);
     }
@@ -125,12 +110,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
 
   const handleStopTimer = async () => {
     try {
-      await worklogService.stopTimer(workspaceSlug, { description: "" });
-      setActiveTimer(null);
-      setElapsed(0);
-      setView("idle");
-      if (timerRef.current) clearInterval(timerRef.current);
-      await fetchWorklogs();
+      await stopTimer({ description: "" });
     } catch (error) {
       console.error("Failed to stop timer:", error);
     }
@@ -138,11 +118,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
 
   const handleDiscardTimer = async () => {
     try {
-      await worklogService.discardTimer(workspaceSlug);
-      setActiveTimer(null);
-      setElapsed(0);
-      setView("idle");
-      if (timerRef.current) clearInterval(timerRef.current);
+      await discardTimer();
     } catch (error) {
       console.error("Failed to discard timer:", error);
     }
@@ -220,14 +196,17 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
       {/* Action buttons */}
       {view === "idle" && !disabled && (
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline-primary"
-            size="sm"
-            prependIcon={<Play className="h-3 w-3" />}
-            onClick={handleStartTimer}
-          >
-            Start Timer
-          </Button>
+          {canUseTimer && !isTimerActiveForCurrentIssue && (
+            <Button
+              variant="outline-primary"
+              size="sm"
+              prependIcon={<Play className="h-3 w-3" />}
+              onClick={handleStartTimer}
+              disabled={isMutating}
+            >
+              {hasAnotherActiveTimer ? "Switch Timer" : "Start Timer"}
+            </Button>
+          )}
           <Button
             variant="outline-primary"
             size="sm"
@@ -239,17 +218,32 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
         </div>
       )}
 
+      {view === "idle" && hasAnotherActiveTimer && (
+        <div className="mt-2 rounded-md border-[0.5px] border-subtle bg-surface-2 px-3 py-2">
+          <span className="text-body-xs-medium text-secondary">
+            Timer running on {activeIssue?.name ?? activeTimer.issue_identifier ?? "another issue"}.
+          </span>
+        </div>
+      )}
+
       {/* Timer running */}
-      {view === "timer-running" && (
+      {isTimerActiveForCurrentIssue && activeTimer && (
         <div className="rounded-md border-[0.5px] border-subtle bg-surface-2 p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Timer className="text-custom-primary-100 h-4 w-4 animate-pulse" />
-              <span className="font-mono text-lg font-semibold text-primary">{formatSeconds(elapsed)}</span>
+              <span className="font-mono text-lg font-semibold text-primary">{formatSeconds(elapsedSeconds)}</span>
             </div>
           </div>
+          {error && <div className="mt-2 text-body-xs-medium text-red-500">{error}</div>}
           <div className="mt-3 flex items-center gap-2">
-            <Button variant="primary" size="sm" prependIcon={<Square className="h-3 w-3" />} onClick={handleStopTimer}>
+            <Button
+              variant="primary"
+              size="sm"
+              prependIcon={<Square className="h-3 w-3" />}
+              onClick={handleStopTimer}
+              loading={isMutating}
+            >
               Stop
             </Button>
             <Button
@@ -257,6 +251,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
               size="sm"
               prependIcon={<Trash2 className="h-3 w-3" />}
               onClick={handleDiscardTimer}
+              disabled={isMutating}
             >
               Discard
             </Button>

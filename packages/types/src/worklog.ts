@@ -47,7 +47,7 @@ export interface IWorklogUpdatePayload {
 export interface IWorklogListResponse {
   results: IWorklog[];
   total_duration: number; // total minutes
-  total_display_duration: string; // "7h 35m"
+  total_display: string; // "7h 35m"
 }
 
 export interface IActiveTimer {
@@ -58,14 +58,23 @@ export interface IActiveTimer {
   user: string;
   start_time: string;
   elapsed_seconds: number;
-  issue_identifier: string; // "PROJ-123"
+  issue_identifier: string | null; // "PROJ-123"
   created_at: string;
   updated_at: string;
+}
+
+export interface IActiveTimerResponse {
+  active_timer: IActiveTimer | null;
 }
 
 export interface ITimerStartPayload {
   issue_id: string;
   project_id: string;
+}
+
+export interface ITimerStartResponse {
+  active_timer: IActiveTimer;
+  stopped_worklog?: IWorklog;
 }
 
 export interface ITimerStopPayload {

@@ -9,7 +9,9 @@ import type {
   IWorklogUpdatePayload,
   IWorklogListResponse,
   IActiveTimer,
+  IActiveTimerResponse,
   ITimerStartPayload,
+  ITimerStartResponse,
   ITimerStopPayload,
 } from "@plane/types";
 
@@ -58,7 +60,7 @@ export class WorklogService extends APIService {
 
   // ── Timer ─────────────────────────────────────
 
-  async startTimer(workspaceSlug: string, data: ITimerStartPayload): Promise<IActiveTimer> {
+  async startTimer(workspaceSlug: string, data: ITimerStartPayload): Promise<ITimerStartResponse> {
     return this.post(`/api/workspaces/${workspaceSlug}/timer/start/`, data).then((response) => response.data);
   }
 
@@ -67,7 +69,9 @@ export class WorklogService extends APIService {
   }
 
   async getActiveTimer(workspaceSlug: string): Promise<IActiveTimer | null> {
-    return this.get(`/api/workspaces/${workspaceSlug}/timer/active/`).then((response) => response.data);
+    return this.get(`/api/workspaces/${workspaceSlug}/timer/active/`).then(
+      (response: { data: IActiveTimerResponse }) => response.data.active_timer
+    );
   }
 
   async discardTimer(workspaceSlug: string): Promise<void> {

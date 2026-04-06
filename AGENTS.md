@@ -3,11 +3,18 @@
 > Read this file top to bottom every session. Then read `docs/implementation/v0.1-custom-fields.md` for current progress.
 
 ## Role
+
 You are an AI coding agent working on a fork of Plane (makeplane/plane) — an open-source project management tool. The fork adds custom features for an internal HR/payroll team. The fork lives on branch `custom/main`.
+
+## Plan Mode
+
+- Make the plan extremely concise. Sacrifice grammar for the sake of concision.
+- At the end of each plan, give me a list of unresolved questions to answer, if any.
 
 ## Stack
 
 ### Backend (Django/Python)
+
 - **Framework:** Django 5.x + Django REST Framework
 - **Database:** PostgreSQL 15 (via Docker)
 - **Queue:** RabbitMQ + Celery for background jobs
@@ -15,6 +22,7 @@ You are an AI coding agent working on a fork of Plane (makeplane/plane) — an o
 - **Auth:** Session-based cookies (session auth for `/api/`, API key auth for `/api/v1/`)
 
 ### Frontend (TypeScript/React)
+
 - **Framework:** React 19 + React Router v7 (NOT Next.js despite file structure naming)
 - **Build:** Vite + Turborepo
 - **State:** MobX stores in `packages/shared-state`
@@ -25,6 +33,7 @@ You are an AI coding agent working on a fork of Plane (makeplane/plane) — an o
 - **Package Manager:** pnpm with workspaces
 
 ## Commands
+
 ```bash
 pnpm dev --filter web          # Dev server (web only)
 pnpm build                     # Build all
@@ -34,6 +43,7 @@ pnpm fix                       # Auto-fix format + lint
 ```
 
 ## Package Boundaries — NEVER violate these
+
 - `packages/types/` — TypeScript interfaces only. No runtime code.
 - `packages/services/` — API service classes extending `APIService`. No UI code.
 - `packages/ui/` — Design system components. No business logic. No API calls.
@@ -43,6 +53,7 @@ pnpm fix                       # Auto-fix format + lint
 - `apps/api/` — Django backend. Completely separate from frontend packages.
 
 ## Hard Rules — NEVER break these
+
 1. **No `any` type.** Use `unknown` with type guards or proper types.
 2. **Routes must be registered in `apps/web/app/routes/core.ts`.** File-based routing is NOT auto-discovered.
 3. **Django API has two layers:** `/api/` (session auth, used by frontend) and `/api/v1/` (API key auth, used externally). Both need views.
@@ -54,6 +65,7 @@ pnpm fix                       # Auto-fix format + lint
 9. **Docker builds cache aggressively.** After code changes, use `docker compose build --no-cache web` and `docker builder prune -af` if route changes don't appear.
 
 ## Domain Knowledge — Can't infer from code
+
 - This is a fork for an **HR/payroll company** with multiple sub-companies.
 - **Custom fields** is the #1 feature added to this fork. It doesn't exist in Plane Community Edition.
 - The fork is self-hosted on an Ubuntu server at `10.110.100.48`.
@@ -61,6 +73,7 @@ pnpm fix                       # Auto-fix format + lint
 - The server has **32GB RAM, no GPU, 500GB SSD on `/data`**. Root partition (`/`) is nearly full — everything must go on `/data`.
 
 ## Gotchas — Discovered during implementation
+
 1. **`SameSite=Lax` cookies block local dev.** Use Vite proxy (`server.proxy` in `vite.config.ts`) to avoid cross-origin issues. Proxy `/api` and `/auth` to `http://10.110.100.48:8082`.
 2. **Django migrations inside Docker are ephemeral.** Migration files created via `docker compose exec api python manage.py makemigrations` get lost on rebuild. For schema changes, use direct SQL: `docker compose exec plane-db psql -U plane -d plane -c "ALTER TABLE ..."`.
 3. **MinIO presigned URLs use `request.get_host()`.** Behind Caddy proxy, this returns the internal hostname. We patched `apps/api/plane/settings/storage.py` to use `MINIO_EXTERNAL_ENDPOINT` env var.
@@ -70,6 +83,7 @@ pnpm fix                       # Auto-fix format + lint
 7. **ESLint `jsx-a11y` is strict on new files** but existing Plane files suppress with `eslint-disable`. Follow the same pattern for custom code.
 
 ## File Organization for Custom Features
+
 ```
 # Backend
 apps/api/plane/db/models/custom_field.py       # Django models

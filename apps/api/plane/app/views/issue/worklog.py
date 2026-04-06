@@ -14,7 +14,7 @@ from plane.api.serializers import (
     ActiveTimerSerializer,
     TimerStartSerializer,
 )
-from plane.db.models import Worklog, ActiveTimer, Issue, Project, Workspace
+from plane.db.models import Worklog, ActiveTimer, Issue, IssueAssignee, Workspace
 
 
 class WorklogViewSet(BaseViewSet):
@@ -145,12 +145,21 @@ class TimerStartEndpoint(BaseAPIView):
         # Validate issue exists
         try:
             issue = Issue.objects.get(
-                id=issue_id, project_id=project_id, deleted_at__isnull=True
+                id=issue_id,
+                project_id=project_id,
+                workspace=workspace,
+                deleted_at__isnull=True,
             )
         except Issue.DoesNotExist:
             return Response(
                 {"error": "Issue not found"},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not IssueAssignee.objects.filter(issue=issue, assignee=request.user).exists():
+            return Response(
+                {"error": "Only assignees can start a timer on this issue"},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         # Auto-stop any running timer for this user in this workspace

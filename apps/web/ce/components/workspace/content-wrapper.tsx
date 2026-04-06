@@ -10,6 +10,7 @@ import { observer } from "mobx-react";
 import { cn } from "@plane/utils";
 import { AppRailRoot } from "@/components/navigation";
 import { useAppRailVisibility } from "@/lib/app-rail";
+import { GlobalWorklogTimerProvider } from "@/plane-web/components/issues/worklog/timer";
 // local imports
 import { TopNavigationRoot } from "../navigations";
 
@@ -35,7 +36,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
             }
           )}
         >
-          {children}
+          <GlobalWorklogTimerProvider>{children}</GlobalWorklogTimerProvider>
         </div>
       </div>
     </div>
