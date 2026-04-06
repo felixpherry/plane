@@ -207,6 +207,18 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
               {hasAnotherActiveTimer ? "Switch Timer" : "Start Timer"}
             </Button>
           )}
+
+          {isTimerActiveForCurrentIssue && (
+            <Button
+              variant="primary"
+              size="sm"
+              prependIcon={<Square className="h-3 w-3" />}
+              onClick={handleStopTimer}
+              loading={isMutating}
+            >
+              Stop
+            </Button>
+          )}
           <Button
             variant="outline-primary"
             size="sm"
@@ -223,39 +235,6 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
           <span className="text-body-xs-medium text-secondary">
             Timer running on {activeIssue?.name ?? activeTimer.issue_identifier ?? "another issue"}.
           </span>
-        </div>
-      )}
-
-      {/* Timer running */}
-      {isTimerActiveForCurrentIssue && activeTimer && (
-        <div className="rounded-md border-[0.5px] border-subtle bg-surface-2 p-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Timer className="text-custom-primary-100 h-4 w-4 animate-pulse" />
-              <span className="font-mono text-lg font-semibold text-primary">{formatSeconds(elapsedSeconds)}</span>
-            </div>
-          </div>
-          {error && <div className="mt-2 text-body-xs-medium text-red-500">{error}</div>}
-          <div className="mt-3 flex items-center gap-2">
-            <Button
-              variant="primary"
-              size="sm"
-              prependIcon={<Square className="h-3 w-3" />}
-              onClick={handleStopTimer}
-              loading={isMutating}
-            >
-              Stop
-            </Button>
-            <Button
-              variant="outline-primary"
-              size="sm"
-              prependIcon={<Trash2 className="h-3 w-3" />}
-              onClick={handleDiscardTimer}
-              disabled={isMutating}
-            >
-              Discard
-            </Button>
-          </div>
         </div>
       )}
 
