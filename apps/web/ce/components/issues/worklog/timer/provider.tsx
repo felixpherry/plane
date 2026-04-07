@@ -21,6 +21,16 @@ import { FloatingWorklogTimerWidget } from "./widget";
 const worklogService = new WorklogService();
 const issueService = new IssueService();
 
+const getElapsedSecondsFromStartTime = (startTime: string): number => {
+  const startedAt = new Date(startTime).getTime();
+
+  if (Number.isNaN(startedAt)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+};
+
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof Error && error.message.trim().length > 0) return error.message;
 
@@ -62,7 +72,7 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
 
   const applyActiveTimer = useCallback((timer: IActiveTimer | null) => {
     setActiveTimer(timer);
-    setElapsedSeconds(timer?.elapsed_seconds ?? 0);
+    setElapsedSeconds(timer ? getElapsedSecondsFromStartTime(timer.start_time) : 0);
   }, []);
 
   const clearActiveTimer = useCallback(() => {
@@ -160,8 +170,10 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
     if (!activeTimer) return undefined;
 
     const interval = setInterval(() => {
-      setElapsedSeconds((previous) => previous + 1);
+      setElapsedSeconds(getElapsedSecondsFromStartTime(activeTimer.start_time));
     }, 1000);
+
+    setElapsedSeconds(getElapsedSecondsFromStartTime(activeTimer.start_time));
 
     return () => clearInterval(interval);
   }, [activeTimer]);
