@@ -33,6 +33,17 @@ export default defineConfig(() => ({
   },
   server: {
     host: "127.0.0.1",
+    proxy: {
+      "/api": {
+        target: "http://10.110.100.48:8082",
+        changeOrigin: true,
+        cookieDomainRewrite: "127.0.0.1",
+      },
+      "/auth": {
+        target: "http://10.110.100.48:8082",
+        changeOrigin: true,
+        cookieDomainRewrite: "127.0.0.1",
+      },
+    },
   },
-  // No SSR-specific overrides needed; alias resolves to ESM build
 }));
