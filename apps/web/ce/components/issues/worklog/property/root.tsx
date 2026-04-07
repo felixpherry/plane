@@ -197,15 +197,25 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
       {view === "idle" && !disabled && (
         <div className="flex items-center gap-2">
           {canUseTimer && !isTimerActiveForCurrentIssue && (
-            <Button
-              variant="outline-primary"
-              size="sm"
-              prependIcon={<Play className="h-3 w-3" />}
-              onClick={handleStartTimer}
-              disabled={isMutating}
-            >
-              {hasAnotherActiveTimer ? "Switch Timer" : "Start Timer"}
-            </Button>
+            <>
+              <Button
+                variant="outline-primary"
+                size="sm"
+                prependIcon={<Play className="h-3 w-3" />}
+                onClick={handleStartTimer}
+                disabled={isMutating}
+              >
+                {hasAnotherActiveTimer ? "Switch Timer" : "Start Timer"}
+              </Button>
+              <Button
+                variant="outline-primary"
+                size="sm"
+                prependIcon={<Plus className="h-3 w-3" />}
+                onClick={() => setView("manual-form")}
+              >
+                Log manually
+              </Button>
+            </>
           )}
 
           {isTimerActiveForCurrentIssue && (
@@ -219,14 +229,6 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
               Stop
             </Button>
           )}
-          <Button
-            variant="outline-primary"
-            size="sm"
-            prependIcon={<Plus className="h-3 w-3" />}
-            onClick={() => setView("manual-form")}
-          >
-            Log manually
-          </Button>
         </div>
       )}
 

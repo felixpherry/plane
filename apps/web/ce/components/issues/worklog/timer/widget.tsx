@@ -125,12 +125,12 @@ export const FloatingWorklogTimerWidget = observer(function FloatingWorklogTimer
         ref={widgetRef}
         className={cn(
           "shadow-lg pointer-events-auto overflow-hidden border border-subtle-1 bg-surface-1",
-          isExpanded ? "cursor-default" : "cursor-pointer",
-          "rounded-sm!"
+          isExpanded ? "cursor-default" : "cursor-pointer"
         )}
         animate={{
           width: isExpanded ? EXPANDED_WIDGET_WIDTH : COMPACT_WIDGET_WIDTH,
           height: isExpanded ? expandedHeight : COMPACT_WIDGET_HEIGHT,
+          borderRadius: isExpanded ? 12 : 999,
         }}
         transition={shellTransition}
         onClick={() => {
