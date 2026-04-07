@@ -10,6 +10,7 @@ from plane.app.views import (
     TimerStopEndpoint,
     TimerActiveEndpoint,
     TimerDiscardEndpoint,
+    TimerHeartbeatEndpoint,
 )
 
 urlpatterns = [
@@ -44,5 +45,10 @@ urlpatterns = [
         "workspaces/<str:slug>/timer/discard/",
         TimerDiscardEndpoint.as_view(),
         name="timer-discard",
+    ),
+    path(
+        "workspaces/<str:slug>/timer/heartbeat/",
+        TimerHeartbeatEndpoint.as_view(),
+        name="timer-heartbeat",
     ),
 ]

@@ -10,6 +10,8 @@ import type {
   IWorklogListResponse,
   IActiveTimer,
   IActiveTimerResponse,
+  ITimerHeartbeatPayload,
+  ITimerHeartbeatResponse,
   ITimerStartPayload,
   ITimerStartResponse,
   ITimerStopPayload,
@@ -62,6 +64,10 @@ export class WorklogService extends APIService {
 
   async startTimer(workspaceSlug: string, data: ITimerStartPayload): Promise<ITimerStartResponse> {
     return this.post(`/api/workspaces/${workspaceSlug}/timer/start/`, data).then((response) => response.data);
+  }
+
+  async heartbeatTimer(workspaceSlug: string, data: ITimerHeartbeatPayload): Promise<ITimerHeartbeatResponse> {
+    return this.post(`/api/workspaces/${workspaceSlug}/timer/heartbeat/`, data).then((response) => response.data);
   }
 
   async stopTimer(workspaceSlug: string, data?: ITimerStopPayload): Promise<IWorklog> {

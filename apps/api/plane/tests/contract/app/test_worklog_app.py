@@ -2,8 +2,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from datetime import timedelta
+
 import pytest
 from rest_framework import status
+from django.utils import timezone
 
 from plane.db.models import ActiveTimer, Issue, IssueAssignee, Project, State, Worklog, Workspace, WorkspaceMember
 
@@ -157,3 +160,113 @@ class TestWorklogTimerAPI:
         discard_response = session_client.post(discard_url_b, {}, format="json")
         assert discard_response.status_code == status.HTTP_200_OK
         assert ActiveTimer.objects.filter(user=create_user, deleted_at__isnull=True).count() == 0
+
+    @pytest.mark.django_db
+    def test_get_active_finalizes_expired_timer(self, session_client, create_user, workspace):
+        _, issue = build_project_issue(
+            workspace,
+            create_user,
+            project_name="Project A",
+            project_identifier="PA",
+            issue_name="Issue A",
+        )
+
+        start_url = f"/api/workspaces/{workspace.slug}/timer/start/"
+        active_url = f"/api/workspaces/{workspace.slug}/timer/active/"
+
+        start_response = session_client.post(
+            start_url,
+            {"issue_id": str(issue.id), "project_id": str(issue.project_id)},
+            format="json",
+        )
+        assert start_response.status_code == status.HTTP_201_CREATED
+
+        ActiveTimer.objects.filter(user=create_user, deleted_at__isnull=True).update(
+            lease_expires_at=timezone.now() - timedelta(seconds=1),
+        )
+
+        active_response = session_client.get(active_url)
+        assert active_response.status_code == status.HTTP_200_OK
+        assert active_response.json()["active_timer"] is None
+        assert ActiveTimer.objects.filter(user=create_user, deleted_at__isnull=True).count() == 0
+        assert Worklog.objects.filter(issue=issue, user=create_user, source="timer").count() == 1
+
+    @pytest.mark.django_db
+    def test_start_timer_finalizes_expired_timer_before_creating_new_one(self, session_client, create_user, workspace):
+        _, issue_a = build_project_issue(
+            workspace,
+            create_user,
+            project_name="Project A",
+            project_identifier="PA",
+            issue_name="Issue A",
+        )
+        _, issue_b = build_project_issue(
+            workspace,
+            create_user,
+            project_name="Project B",
+            project_identifier="PB",
+            issue_name="Issue B",
+        )
+
+        start_url = f"/api/workspaces/{workspace.slug}/timer/start/"
+
+        first_start = session_client.post(
+            start_url,
+            {"issue_id": str(issue_a.id), "project_id": str(issue_a.project_id)},
+            format="json",
+        )
+        assert first_start.status_code == status.HTTP_201_CREATED
+
+        ActiveTimer.objects.filter(user=create_user, deleted_at__isnull=True).update(
+            lease_expires_at=timezone.now() - timedelta(seconds=1),
+        )
+
+        second_start = session_client.post(
+            start_url,
+            {"issue_id": str(issue_b.id), "project_id": str(issue_b.project_id)},
+            format="json",
+        )
+        assert second_start.status_code == status.HTTP_201_CREATED
+
+        response_data = second_start.json()
+        assert response_data["stopped_worklog"]["issue"] == str(issue_a.id)
+        assert response_data["active_timer"]["issue"] == str(issue_b.id)
+        assert ActiveTimer.objects.filter(user=create_user, deleted_at__isnull=True).count() == 1
+
+    @pytest.mark.django_db
+    def test_timer_heartbeat_requires_matching_lease_token(self, session_client, create_user, workspace):
+        _, issue = build_project_issue(
+            workspace,
+            create_user,
+            project_name="Project A",
+            project_identifier="PA",
+            issue_name="Issue A",
+        )
+
+        start_url = f"/api/workspaces/{workspace.slug}/timer/start/"
+        heartbeat_url = f"/api/workspaces/{workspace.slug}/timer/heartbeat/"
+
+        start_response = session_client.post(
+            start_url,
+            {"issue_id": str(issue.id), "project_id": str(issue.project_id)},
+            format="json",
+        )
+        assert start_response.status_code == status.HTTP_201_CREATED
+
+        lease_token = start_response.json()["lease_token"]
+
+        rejected_response = session_client.post(
+            heartbeat_url,
+            {"lease_token": "wrong-token"},
+            format="json",
+        )
+        assert rejected_response.status_code == status.HTTP_409_CONFLICT
+
+        accepted_response = session_client.post(
+            heartbeat_url,
+            {"lease_token": lease_token},
+            format="json",
+        )
+        assert accepted_response.status_code == status.HTTP_200_OK
+        assert accepted_response.json()["active_timer"]["issue"] == str(issue.id)
+        assert ActiveTimer.objects.filter(user=create_user, deleted_at__isnull=True).count() == 1

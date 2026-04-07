@@ -1,3 +1,4 @@
+// eslint-disable
 "use client";
 
 /**
@@ -20,6 +21,13 @@ import { FloatingWorklogTimerWidget } from "./widget";
 
 const worklogService = new WorklogService();
 const issueService = new IssueService();
+const TIMER_LEASE_STORAGE_KEY = "plane.worklog.timer.lease-token";
+const TIMER_BROADCAST_CHANNEL = "plane.worklog.timer";
+const HEARTBEAT_INTERVAL_MS = 5000;
+const LEADER_PING_INTERVAL_MS = 1000;
+const LEADER_STALE_MS = 3500;
+const LEADER_CLAIM_DELAY_MS = 1500;
+const LEADER_CHECK_INTERVAL_MS = 1000;
 
 const getElapsedSecondsFromStartTime = (startTime: string): number => {
   const startedAt = new Date(startTime).getTime();
@@ -53,6 +61,21 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+const createTabId = (): string =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+const readStoredLeaseToken = (): string | null => {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return window.localStorage.getItem(TIMER_LEASE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
 export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerProvider({
   children,
 }: {
@@ -69,6 +92,15 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
   const [error, setError] = useState<string | null>(null);
   const [lastStoppedWorklog, setLastStoppedWorklog] = useState<IWorklog | null>(null);
   const activeIssueRequestRef = useRef(0);
+  const tabIdRef = useRef(createTabId());
+  const leaseTokenRef = useRef<string | null>(null);
+  const broadcastRef = useRef<BroadcastChannel | null>(null);
+  const heartbeatRef = useRef<number | null>(null);
+  const leaderPingRef = useRef<number | null>(null);
+  const leaderCheckRef = useRef<number | null>(null);
+  const claimTimeoutRef = useRef<number | null>(null);
+  const leaderSeenAtRef = useRef(0);
+  const isLocalLeaderRef = useRef(false);
 
   const applyActiveTimer = useCallback((timer: IActiveTimer | null) => {
     setActiveTimer(timer);
@@ -83,6 +115,64 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
   const clearActiveIssue = useCallback(() => {
     activeIssueRequestRef.current += 1;
     setIsActiveIssueLoading(false);
+  }, []);
+
+  const stopLocalHeartbeat = useCallback(() => {
+    if (heartbeatRef.current) {
+      window.clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
+    }
+
+    if (leaderPingRef.current) {
+      window.clearInterval(leaderPingRef.current);
+      leaderPingRef.current = null;
+    }
+  }, []);
+
+  const stopLeaderWatcher = useCallback(() => {
+    if (leaderCheckRef.current) {
+      window.clearInterval(leaderCheckRef.current);
+      leaderCheckRef.current = null;
+    }
+
+    if (claimTimeoutRef.current) {
+      window.clearTimeout(claimTimeoutRef.current);
+      claimTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearLocalLeadership = useCallback(() => {
+    isLocalLeaderRef.current = false;
+    leaderSeenAtRef.current = 0;
+    stopLocalHeartbeat();
+    stopLeaderWatcher();
+  }, [stopLeaderWatcher, stopLocalHeartbeat]);
+
+  const persistLeaseToken = useCallback((leaseToken: string | null) => {
+    leaseTokenRef.current = leaseToken;
+
+    if (typeof window === "undefined") return;
+
+    try {
+      if (leaseToken) {
+        window.localStorage.setItem(TIMER_LEASE_STORAGE_KEY, leaseToken);
+      } else {
+        window.localStorage.removeItem(TIMER_LEASE_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore storage failures. The timer can still run until refresh.
+    }
+  }, []);
+
+  const broadcastLeaderState = useCallback((type: "leader-alive" | "leader-release") => {
+    const channel = broadcastRef.current;
+    if (!channel) return;
+
+    channel.postMessage({
+      type,
+      tabId: tabIdRef.current,
+      timestamp: Date.now(),
+    });
   }, []);
 
   const cachedActiveIssue = activeTimer ? (rootStore.issue.issues.getIssueById(activeTimer.issue) ?? null) : null;
@@ -106,18 +196,25 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
     : null;
 
   const refreshActiveTimer = useCallback(async (): Promise<IActiveTimer | null> => {
-    if (!workspaceSlug) {
+    if (!workspaceSlugValue) {
       setIsInitializing(false);
       clearActiveTimer();
       clearActiveIssue();
+      persistLeaseToken(null);
+      clearLocalLeadership();
       return null;
     }
 
     setIsInitializing(true);
     try {
-      const timer = await worklogService.getActiveTimer(workspaceSlug);
+      const timer = await worklogService.getActiveTimer(workspaceSlugValue);
       setError(null);
       applyActiveTimer(timer);
+      if (!timer) {
+        persistLeaseToken(null);
+        broadcastLeaderState("leader-release");
+        clearLocalLeadership();
+      }
       return timer;
     } catch (refreshError) {
       setError(getErrorMessage(refreshError, "Failed to load active timer."));
@@ -127,7 +224,15 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
     } finally {
       setIsInitializing(false);
     }
-  }, [applyActiveTimer, clearActiveTimer, clearActiveIssue, workspaceSlug]);
+  }, [
+    applyActiveTimer,
+    broadcastLeaderState,
+    clearActiveIssue,
+    clearActiveTimer,
+    clearLocalLeadership,
+    persistLeaseToken,
+    workspaceSlugValue,
+  ]);
 
   const resolveActiveIssue = useCallback(async () => {
     if (!activeTimer || !activeWorkspaceSlug) {
@@ -155,16 +260,159 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
     }
   }, [activeTimer, activeWorkspaceSlug, cachedActiveIssue, clearActiveIssue, rootStore]);
 
+  const handleHeartbeatFailure = useCallback(
+    (heartbeatError: unknown) => {
+      setError(getErrorMessage(heartbeatError, "Failed to renew timer lease."));
+      persistLeaseToken(null);
+      broadcastLeaderState("leader-release");
+      clearLocalLeadership();
+      clearActiveTimer();
+      clearActiveIssue();
+
+      void refreshActiveTimer().catch(() => {
+        // The provider keeps its own error state for rendering.
+      });
+    },
+    [
+      broadcastLeaderState,
+      clearActiveIssue,
+      clearActiveTimer,
+      clearLocalLeadership,
+      persistLeaseToken,
+      refreshActiveTimer,
+    ]
+  );
+
+  const sendHeartbeat = useCallback(async () => {
+    if (!workspaceSlugValue || !activeTimer) return;
+
+    const leaseToken = leaseTokenRef.current;
+    if (!leaseToken) return;
+
+    try {
+      await worklogService.heartbeatTimer(workspaceSlugValue, {
+        lease_token: leaseToken,
+      });
+
+      setError(null);
+      leaderSeenAtRef.current = Date.now();
+      broadcastLeaderState("leader-alive");
+    } catch (heartbeatError) {
+      handleHeartbeatFailure(heartbeatError);
+    }
+  }, [activeTimer, broadcastLeaderState, handleHeartbeatFailure, workspaceSlugValue]);
+
+  const becomeLocalLeader = useCallback(() => {
+    if (!activeTimer || !leaseTokenRef.current) return;
+    if (isLocalLeaderRef.current) return;
+
+    isLocalLeaderRef.current = true;
+    leaderSeenAtRef.current = Date.now();
+    broadcastLeaderState("leader-alive");
+
+    if (leaderPingRef.current) {
+      window.clearInterval(leaderPingRef.current);
+    }
+    leaderPingRef.current = window.setInterval(() => {
+      leaderSeenAtRef.current = Date.now();
+      broadcastLeaderState("leader-alive");
+    }, LEADER_PING_INTERVAL_MS);
+
+    stopLocalHeartbeat();
+    heartbeatRef.current = window.setInterval(() => {
+      void sendHeartbeat();
+    }, HEARTBEAT_INTERVAL_MS);
+
+    void sendHeartbeat();
+  }, [activeTimer, broadcastLeaderState, sendHeartbeat, stopLocalHeartbeat]);
+
+  const requestLocalLeadership = useCallback(() => {
+    if (!activeTimer || !leaseTokenRef.current || isLocalLeaderRef.current) return;
+    if (Date.now() - leaderSeenAtRef.current < LEADER_STALE_MS) return;
+    if (claimTimeoutRef.current) return;
+
+    claimTimeoutRef.current = window.setTimeout(() => {
+      claimTimeoutRef.current = null;
+
+      if (!activeTimer || !leaseTokenRef.current || isLocalLeaderRef.current) return;
+      if (Date.now() - leaderSeenAtRef.current < LEADER_STALE_MS) return;
+
+      becomeLocalLeader();
+    }, LEADER_CLAIM_DELAY_MS);
+  }, [activeTimer, becomeLocalLeader]);
+
+  const syncLeaderFromBroadcast = useCallback(
+    (event: MessageEvent<unknown>) => {
+      const payload = event.data;
+      if (typeof payload !== "object" || payload === null) return;
+
+      const message = payload as { type?: string; tabId?: string };
+      if (typeof message.type !== "string" || typeof message.tabId !== "string") return;
+
+      if (message.type === "leader-alive") {
+        leaderSeenAtRef.current = Date.now();
+        if (message.tabId !== tabIdRef.current) {
+          isLocalLeaderRef.current = false;
+        }
+      }
+
+      if (message.type === "leader-release" && message.tabId !== tabIdRef.current) {
+        leaderSeenAtRef.current = 0;
+        requestLocalLeadership();
+      }
+    },
+    [requestLocalLeadership]
+  );
+
+  const startHeartbeatCoordination = useCallback(() => {
+    if (!activeTimer || !leaseTokenRef.current) {
+      clearLocalLeadership();
+      return;
+    }
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!("BroadcastChannel" in window)) {
+      becomeLocalLeader();
+      return;
+    }
+
+    if (!broadcastRef.current) {
+      broadcastRef.current = new BroadcastChannel(TIMER_BROADCAST_CHANNEL);
+      broadcastRef.current.onmessage = syncLeaderFromBroadcast;
+    }
+
+    stopLeaderWatcher();
+    leaderCheckRef.current = window.setInterval(() => {
+      if (!activeTimer || !leaseTokenRef.current) return;
+
+      if (!isLocalLeaderRef.current) {
+        requestLocalLeadership();
+        return;
+      }
+
+      if (Date.now() - leaderSeenAtRef.current >= LEADER_STALE_MS) {
+        isLocalLeaderRef.current = false;
+        requestLocalLeadership();
+      }
+    }, LEADER_CHECK_INTERVAL_MS);
+
+    requestLocalLeadership();
+  }, [activeTimer, clearLocalLeadership, requestLocalLeadership, stopLeaderWatcher, syncLeaderFromBroadcast]);
+
   useEffect(() => {
     setLastStoppedWorklog(null);
     setError(null);
     clearActiveTimer();
     clearActiveIssue();
+    persistLeaseToken(readStoredLeaseToken());
 
     void refreshActiveTimer().catch(() => {
       // The provider keeps its own error state for rendering.
     });
-  }, [clearActiveIssue, clearActiveTimer, refreshActiveTimer]);
+  }, [clearActiveIssue, clearActiveTimer, persistLeaseToken, refreshActiveTimer]);
 
   useEffect(() => {
     if (!activeTimer) return undefined;
@@ -182,23 +430,49 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
     void resolveActiveIssue();
   }, [resolveActiveIssue]);
 
+  useEffect(() => {
+    if (!activeTimer || !leaseTokenRef.current) {
+      clearLocalLeadership();
+      return;
+    }
+
+    startHeartbeatCoordination();
+
+    return () => {
+      broadcastLeaderState("leader-release");
+      clearLocalLeadership();
+    };
+  }, [activeTimer, broadcastLeaderState, clearLocalLeadership, startHeartbeatCoordination]);
+
+  useEffect(() => {
+    return () => {
+      clearLocalLeadership();
+      if (broadcastRef.current) {
+        broadcastRef.current.close();
+        broadcastRef.current = null;
+      }
+    };
+  }, [clearLocalLeadership]);
+
   const activeIssue = cachedActiveIssue;
 
   const startTimer = useCallback(
     async ({ issueId, projectId }: { issueId: string; projectId: string }): Promise<ITimerStartResponse> => {
-      if (!workspaceSlug) throw new Error("Workspace slug is required to start a timer.");
+      if (!workspaceSlugValue) throw new Error("Workspace slug is required to start a timer.");
 
       setIsMutating(true);
       try {
-        const response = await worklogService.startTimer(workspaceSlug, {
+        const response = await worklogService.startTimer(workspaceSlugValue, {
           issue_id: issueId,
           project_id: projectId,
         });
 
         setError(null);
         setLastStoppedWorklog(response.stopped_worklog ?? null);
+        persistLeaseToken(response.lease_token);
         applyActiveTimer(response.active_timer);
         clearActiveIssue();
+        startHeartbeatCoordination();
 
         return response;
       } catch (startError) {
@@ -208,20 +482,23 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
         setIsMutating(false);
       }
     },
-    [applyActiveTimer, clearActiveIssue, workspaceSlug]
+    [applyActiveTimer, clearActiveIssue, persistLeaseToken, startHeartbeatCoordination, workspaceSlugValue]
   );
 
   const stopTimer = useCallback(
     async ({ description = "" }: { description?: string } = {}): Promise<IWorklog> => {
-      if (!workspaceSlug) throw new Error("Workspace slug is required to stop a timer.");
+      if (!workspaceSlugValue) throw new Error("Workspace slug is required to stop a timer.");
 
       setIsMutating(true);
       try {
-        const worklog = await worklogService.stopTimer(workspaceSlug, {
+        const worklog = await worklogService.stopTimer(workspaceSlugValue, {
           description,
         });
         setError(null);
         setLastStoppedWorklog(worklog);
+        persistLeaseToken(null);
+        broadcastLeaderState("leader-release");
+        clearLocalLeadership();
         clearActiveTimer();
         clearActiveIssue();
 
@@ -233,17 +510,27 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
         setIsMutating(false);
       }
     },
-    [clearActiveTimer, clearActiveIssue, workspaceSlug]
+    [
+      broadcastLeaderState,
+      clearActiveTimer,
+      clearActiveIssue,
+      clearLocalLeadership,
+      persistLeaseToken,
+      workspaceSlugValue,
+    ]
   );
 
   const discardTimer = useCallback(async (): Promise<void> => {
-    if (!workspaceSlug) throw new Error("Workspace slug is required to discard a timer.");
+    if (!workspaceSlugValue) throw new Error("Workspace slug is required to discard a timer.");
 
     setIsMutating(true);
     try {
-      await worklogService.discardTimer(workspaceSlug);
+      await worklogService.discardTimer(workspaceSlugValue);
       setError(null);
       setLastStoppedWorklog(null);
+      persistLeaseToken(null);
+      broadcastLeaderState("leader-release");
+      clearLocalLeadership();
       clearActiveTimer();
       clearActiveIssue();
     } catch (discardError) {
@@ -252,7 +539,14 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
     } finally {
       setIsMutating(false);
     }
-  }, [clearActiveTimer, clearActiveIssue, workspaceSlug]);
+  }, [
+    broadcastLeaderState,
+    clearActiveTimer,
+    clearActiveIssue,
+    clearLocalLeadership,
+    persistLeaseToken,
+    workspaceSlugValue,
+  ]);
 
   const isActiveForIssue = useCallback(
     (issueId: string) => {

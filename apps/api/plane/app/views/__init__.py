@@ -154,6 +154,7 @@ from .issue.worklog import (
     TimerStopEndpoint,
     TimerActiveEndpoint,
     TimerDiscardEndpoint,
+    TimerHeartbeatEndpoint,
 )
 
 from .issue.link import IssueLinkViewSet

@@ -2,6 +2,9 @@
 # Adds worklog (manual time logging) and timer (start/stop) support.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import uuid
+from datetime import timedelta
+
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -121,6 +124,22 @@ class ActiveTimer(WorkspaceBaseModel):
         default=timezone.now,
         help_text="When the timer was started.",
     )
+    lease_token = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        help_text="Opaque token used by the owning client to renew the timer lease.",
+    )
+    lease_expires_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="When the current timer lease expires.",
+    )
+    last_heartbeat_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="When the owning client last renewed the lease.",
+    )
 
     class Meta:
         verbose_name = "Active Timer"
@@ -143,6 +162,20 @@ class ActiveTimer(WorkspaceBaseModel):
     def elapsed_minutes(self):
         """Minutes elapsed since timer started (rounded down)."""
         return self.elapsed_seconds // 60
+
+    def is_lease_expired(self):
+        if not self.lease_expires_at:
+            return True
+        return self.lease_expires_at <= timezone.now()
+
+    def renew_lease(self, *, lease_seconds: int = 15):
+        """Assign a new lease token and expiry to the timer."""
+        now = timezone.now()
+        self.lease_token = uuid.uuid4().hex
+        self.lease_expires_at = now + timedelta(seconds=lease_seconds)
+        self.last_heartbeat_at = now
+        self.save()
+        return self.lease_token
 
     def stop(self):
         """Stop the timer and create a worklog entry.

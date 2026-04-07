@@ -115,7 +115,21 @@ class ActiveTimerSerializer(BaseSerializer):
 
     class Meta:
         model = ActiveTimer
-        fields = "__all__"
+        fields = [
+            "id",
+            "issue",
+            "project",
+            "workspace",
+            "user",
+            "start_time",
+            "lease_expires_at",
+            "last_heartbeat_at",
+            "elapsed_seconds",
+            "issue_identifier",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+        ]
         read_only_fields = [
             "id",
             "created_by",
@@ -141,6 +155,14 @@ class ActiveTimerSerializer(BaseSerializer):
         if obj.issue and obj.issue.project:
             return f"{obj.issue.project.identifier}-{obj.issue.sequence_id}"
         return None
+
+
+class TimerHeartbeatSerializer(serializers.Serializer):
+    """
+    Serializer for renewing an active timer lease.
+    """
+
+    lease_token = serializers.CharField(required=True, allow_blank=False)
 
 
 class TimerStartSerializer(serializers.Serializer):

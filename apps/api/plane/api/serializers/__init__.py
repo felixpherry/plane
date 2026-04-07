@@ -71,5 +71,6 @@ from .worklog import (
     WorklogCreateSerializer,
     WorklogLiteSerializer,
     ActiveTimerSerializer,
+    TimerHeartbeatSerializer,
     TimerStartSerializer,
 )

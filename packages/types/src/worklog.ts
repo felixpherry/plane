@@ -57,6 +57,7 @@ export interface IActiveTimer {
   workspace: string;
   user: string;
   start_time: string;
+  lease_expires_at: string | null;
   elapsed_seconds: number;
   issue_identifier: string | null; // "PROJ-123"
   created_at: string;
@@ -75,8 +76,17 @@ export interface ITimerStartPayload {
 export interface ITimerStartResponse {
   active_timer: IActiveTimer;
   stopped_worklog?: IWorklog;
+  lease_token: string;
 }
 
 export interface ITimerStopPayload {
   description?: string;
+}
+
+export interface ITimerHeartbeatPayload {
+  lease_token: string;
+}
+
+export interface ITimerHeartbeatResponse {
+  active_timer: IActiveTimer;
 }
