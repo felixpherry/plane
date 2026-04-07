@@ -6,28 +6,52 @@
 
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import { useEffect } from "react";
 // PLane
 import { GANTT_TIMELINE_TYPE } from "@plane/types";
 import type { IBlockUpdateData, IBlockUpdateDependencyData, IModule } from "@plane/types";
 // components
 import { GanttChartRoot, ModuleGanttSidebar } from "@/components/gantt-chart";
+import {
+  SIDEBAR_WIDTH,
+  clampGanttSidebarWidth,
+  getGanttSidebarWidthStorageKey,
+} from "@/components/gantt-chart/constants";
 import { TimeLineTypeContext } from "@/components/gantt-chart/contexts";
 import { ModuleGanttBlock } from "@/components/modules";
 // hooks
 import { useModule } from "@/hooks/store/use-module";
 import { useModuleFilter } from "@/hooks/store/use-module-filter";
 import { useProject } from "@/hooks/store/use-project";
+import useLocalStorage from "@/hooks/use-local-storage";
 
 export const ModulesListGanttChartView = observer(function ModulesListGanttChartView() {
   // router
   const { workspaceSlug, projectId } = useParams();
+  const sidebarWidthStorageKey = projectId
+    ? getGanttSidebarWidthStorageKey(projectId.toString())
+    : "gantt-sidebar-width:default";
   // store
   const { currentProjectDetails } = useProject();
   const { getFilteredModuleIds, updateModuleDetails } = useModule();
   const { currentProjectDisplayFilters: displayFilters } = useModuleFilter();
+  const { storedValue: storedSidebarWidth, setValue: setSidebarWidth } = useLocalStorage<number>(
+    sidebarWidthStorageKey,
+    SIDEBAR_WIDTH
+  );
 
   // derived values
   const filteredModuleIds = projectId ? getFilteredModuleIds(projectId.toString()) : undefined;
+  const sidebarWidth = clampGanttSidebarWidth(storedSidebarWidth ?? SIDEBAR_WIDTH);
+
+  useEffect(() => {
+    if (storedSidebarWidth == null) return;
+
+    const normalizedSidebarWidth = clampGanttSidebarWidth(storedSidebarWidth);
+    if (normalizedSidebarWidth !== storedSidebarWidth) {
+      setSidebarWidth(normalizedSidebarWidth);
+    }
+  }, [setSidebarWidth, storedSidebarWidth]);
 
   const handleModuleUpdate = async (module: IModule, data: IBlockUpdateData) => {
     if (!workspaceSlug || !module) return;
@@ -71,6 +95,8 @@ export const ModulesListGanttChartView = observer(function ModulesListGanttChart
         enableAddBlock={isAllowed}
         updateBlockDates={updateBlockDates}
         showAllBlocks
+        sidebarWidth={sidebarWidth}
+        setSidebarWidth={setSidebarWidth}
       />
     </TimeLineTypeContext.Provider>
   );

@@ -11,7 +11,14 @@ export const HEADER_HEIGHT = 48;
 export const GANTT_BREADCRUMBS_HEIGHT = 40;
 
 export const SIDEBAR_WIDTH = 360;
+export const GANTT_SIDEBAR_MIN_WIDTH = 240;
+export const GANTT_SIDEBAR_MAX_WIDTH = 600;
 
 export const DEFAULT_BLOCK_WIDTH = 60;
 
 export const GANTT_SELECT_GROUP = "gantt-issues";
+
+export const clampGanttSidebarWidth = (width: number) =>
+  Math.min(Math.max(width, GANTT_SIDEBAR_MIN_WIDTH), GANTT_SIDEBAR_MAX_WIDTH);
+
+export const getGanttSidebarWidthStorageKey = (projectId: string) => `gantt-sidebar-width:${projectId}`;

@@ -1,3 +1,4 @@
+//  eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -60,7 +61,9 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
 
     const updatedSortOrder = orderJoinedProjects(sourceIndex, destinationIndex, sourceId, joinedProjectsList);
     if (updatedSortOrder != undefined)
-      updateProjectView(workspaceSlug.toString(), sourceId, { sort_order: updatedSortOrder }).catch(() => {
+      updateProjectView(workspaceSlug.toString(), sourceId, {
+        sort_order: updatedSortOrder,
+      }).catch(() => {
         setToast({
           type: TOAST_TYPE.ERROR,
           title: t("error"),

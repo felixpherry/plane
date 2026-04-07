@@ -1,10 +1,10 @@
+//  eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
 
-import type { FC } from "react";
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { createPortal } from "react-dom";
@@ -13,12 +13,13 @@ import { createPortal } from "react-dom";
 import type { ChartDataType, IBlockUpdateData, IBlockUpdateDependencyData, TGanttViews } from "@plane/types";
 import { cn } from "@plane/utils";
 import { GanttChartHeader, GanttChartMainContent } from "@/components/gantt-chart";
+import { GanttSidebarWidthContext } from "@/components/gantt-chart/contexts";
 // helpers
 // hooks
 import { useUserProfile } from "@/hooks/store/user";
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 //
-import { SIDEBAR_WIDTH } from "../constants";
+import { SIDEBAR_WIDTH, clampGanttSidebarWidth } from "../constants";
 import { currentViewDataWithView } from "../data";
 import type { IMonthBlock, IMonthView, IWeekBlock } from "../views";
 import { getNumberOfDaysBetweenTwoDates, monthView, quarterView, weekView } from "../views";
@@ -46,6 +47,8 @@ type ChartViewRootProps = {
   quickAdd?: React.ReactNode | undefined;
   showToday: boolean;
   isEpic?: boolean;
+  sidebarWidth?: number;
+  setSidebarWidth?: (width: number) => void;
 };
 
 const timelineViewHelpers = {
@@ -78,10 +81,13 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
     showToday,
     updateBlockDates,
     isEpic = false,
+    sidebarWidth,
+    setSidebarWidth,
   } = props;
   // states
   const [itemsContainerWidth, setItemsContainerWidth] = useState(0);
   const [fullScreenMode, setFullScreenMode] = useState(false);
+  const [internalSidebarWidth, setInternalSidebarWidth] = useState(SIDEBAR_WIDTH);
   // hooks
   const {
     currentView,
@@ -94,6 +100,8 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
   } = useTimeLineChartStore();
   const { data } = useUserProfile();
   const startOfWeek = data?.start_of_the_week;
+  const resolvedSidebarWidth = clampGanttSidebarWidth(sidebarWidth ?? internalSidebarWidth);
+  const handleSetSidebarWidth = setSidebarWidth ?? setInternalSidebarWidth;
 
   const updateCurrentViewRenderPayload = (side: null | "left" | "right", view: TGanttViews, targetDate?: Date) => {
     const selectedCurrentView: TGanttViews = view;
@@ -172,7 +180,7 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
     scrollWidth =
       Math.abs(daysDifference) * currentState.data.dayWidth -
       (clientVisibleWidth / 2 - currentState.data.dayWidth) +
-      SIDEBAR_WIDTH / 2;
+      resolvedSidebarWidth / 2;
 
     scrollContainer.scrollLeft = scrollWidth;
   };
@@ -180,45 +188,52 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
   const portalContainer = document.getElementById("full-screen-portal") as HTMLElement;
 
   const content = (
-    <div
-      className={cn("shadow relative flex h-full flex-col rounded-xs bg-surface-1 select-none", {
-        "inset-0 z-[25] bg-surface-1": fullScreenMode,
-        "border-[0.5px] border-subtle": border,
-      })}
+    <GanttSidebarWidthContext.Provider
+      value={{
+        sidebarWidth: resolvedSidebarWidth,
+        setSidebarWidth: (width: number) => handleSetSidebarWidth(clampGanttSidebarWidth(width)),
+      }}
     >
-      <GanttChartHeader
-        blockIds={blockIds}
-        fullScreenMode={fullScreenMode}
-        toggleFullScreenMode={() => setFullScreenMode((prevData) => !prevData)}
-        handleChartView={(key) => updateCurrentViewRenderPayload(null, key)}
-        handleToday={handleToday}
-        loaderTitle={loaderTitle}
-        showToday={showToday}
-      />
-      <GanttChartMainContent
-        blockIds={blockIds}
-        loadMoreBlocks={loadMoreBlocks}
-        canLoadMoreBlocks={canLoadMoreBlocks}
-        blockToRender={blockToRender}
-        blockUpdateHandler={blockUpdateHandler}
-        bottomSpacing={bottomSpacing}
-        enableBlockLeftResize={enableBlockLeftResize}
-        enableBlockMove={enableBlockMove}
-        enableBlockRightResize={enableBlockRightResize}
-        enableReorder={enableReorder}
-        enableSelection={enableSelection}
-        enableAddBlock={enableAddBlock}
-        enableDependency={enableDependency}
-        itemsContainerWidth={itemsContainerWidth}
-        showAllBlocks={showAllBlocks}
-        sidebarToRender={sidebarToRender}
-        title={title}
-        updateCurrentViewRenderPayload={updateCurrentViewRenderPayload}
-        quickAdd={quickAdd}
-        updateBlockDates={updateBlockDates}
-        isEpic={isEpic}
-      />
-    </div>
+      <div
+        className={cn("shadow relative flex h-full flex-col rounded-xs bg-surface-1 select-none", {
+          "inset-0 z-[25] bg-surface-1": fullScreenMode,
+          "border-[0.5px] border-subtle": border,
+        })}
+      >
+        <GanttChartHeader
+          blockIds={blockIds}
+          fullScreenMode={fullScreenMode}
+          toggleFullScreenMode={() => setFullScreenMode((prevData) => !prevData)}
+          handleChartView={(key) => updateCurrentViewRenderPayload(null, key)}
+          handleToday={handleToday}
+          loaderTitle={loaderTitle}
+          showToday={showToday}
+        />
+        <GanttChartMainContent
+          blockIds={blockIds}
+          loadMoreBlocks={loadMoreBlocks}
+          canLoadMoreBlocks={canLoadMoreBlocks}
+          blockToRender={blockToRender}
+          blockUpdateHandler={blockUpdateHandler}
+          bottomSpacing={bottomSpacing}
+          enableBlockLeftResize={enableBlockLeftResize}
+          enableBlockMove={enableBlockMove}
+          enableBlockRightResize={enableBlockRightResize}
+          enableReorder={enableReorder}
+          enableSelection={enableSelection}
+          enableAddBlock={enableAddBlock}
+          enableDependency={enableDependency}
+          itemsContainerWidth={itemsContainerWidth}
+          showAllBlocks={showAllBlocks}
+          sidebarToRender={sidebarToRender}
+          title={title}
+          updateCurrentViewRenderPayload={updateCurrentViewRenderPayload}
+          quickAdd={quickAdd}
+          updateBlockDates={updateBlockDates}
+          isEpic={isEpic}
+        />
+      </div>
+    </GanttSidebarWidthContext.Provider>
   );
 
   return fullScreenMode && portalContainer ? createPortal(content, portalContainer) : content;

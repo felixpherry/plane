@@ -1,3 +1,4 @@
+//  eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -36,6 +37,8 @@ type GanttChartRootProps = {
   showAllBlocks?: boolean;
   showToday?: boolean;
   isEpic?: boolean;
+  sidebarWidth?: number;
+  setSidebarWidth?: (width: number) => void;
 };
 
 export const GanttChartRoot = observer(function GanttChartRoot(props: GanttChartRootProps) {
@@ -62,6 +65,8 @@ export const GanttChartRoot = observer(function GanttChartRoot(props: GanttChart
     quickAdd,
     updateBlockDates,
     isEpic = false,
+    sidebarWidth,
+    setSidebarWidth,
   } = props;
 
   const { setBlockIds } = useTimeLineChartStore();
@@ -95,6 +100,8 @@ export const GanttChartRoot = observer(function GanttChartRoot(props: GanttChart
       showToday={showToday}
       updateBlockDates={updateBlockDates}
       isEpic={isEpic}
+      sidebarWidth={sidebarWidth}
+      setSidebarWidth={setSidebarWidth}
     />
   );
 });

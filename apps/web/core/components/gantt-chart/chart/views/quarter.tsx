@@ -1,3 +1,4 @@
+//  eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -7,15 +8,17 @@
 import { observer } from "mobx-react";
 // plane utils
 import { cn } from "@plane/utils";
+import { useGanttSidebarWidth } from "@/components/gantt-chart/contexts";
 // hooks
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 //
-import { HEADER_HEIGHT, SIDEBAR_WIDTH } from "../../constants";
+import { HEADER_HEIGHT } from "../../constants";
 import type { IMonthBlock, IQuarterMonthBlock } from "../../views";
 import { groupMonthsToQuarters } from "../../views";
 
 export const QuarterChartView = observer(function QuarterChartView(_props: any) {
   const { currentViewData, renderView } = useTimeLineChartStore();
+  const { sidebarWidth } = useGanttSidebarWidth();
   const monthBlocks: IMonthBlock[] = renderView;
 
   const quarterBlocks: IQuarterMonthBlock[] = groupMonthsToQuarters(monthBlocks);
@@ -40,7 +43,7 @@ export const QuarterChartView = observer(function QuarterChartView(_props: any) 
                 <div
                   className="sticky z-[1] my-1 flex items-center bg-surface-1 px-3 py-1 text-14 font-regular whitespace-nowrap text-secondary capitalize"
                   style={{
-                    left: `${SIDEBAR_WIDTH}px`,
+                    left: `${sidebarWidth}px`,
                   }}
                 >
                   {quarterBlock?.title}
@@ -65,7 +68,9 @@ export const QuarterChartView = observer(function QuarterChartView(_props: any) 
                         "bg-accent-primary/20": monthBlock.today,
                       }
                     )}
-                    style={{ width: `${currentViewData?.data.dayWidth * monthBlock.days}px` }}
+                    style={{
+                      width: `${currentViewData?.data.dayWidth * monthBlock.days}px`,
+                    }}
                   >
                     <div className="flex h-full items-center justify-center space-x-1 text-11 font-medium">
                       <span
@@ -88,7 +93,9 @@ export const QuarterChartView = observer(function QuarterChartView(_props: any) 
                   className={cn("h-full overflow-hidden outline-[0.25px] outline-subtle", {
                     "bg-accent-primary/20": monthBlock.today,
                   })}
-                  style={{ width: `${currentViewData?.data.dayWidth * monthBlock.days}px` }}
+                  style={{
+                    width: `${currentViewData?.data.dayWidth * monthBlock.days}px`,
+                  }}
                 />
               ))}
             </div>

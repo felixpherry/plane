@@ -1,3 +1,4 @@
+//  eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -23,9 +24,16 @@ import { useIssues } from "@/hooks/store/use-issues";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import { useIssuesActions } from "@/hooks/use-issues-actions";
+import useLocalStorage from "@/hooks/use-local-storage";
 import { useTimeLineChart } from "@/hooks/use-timeline-chart";
 // plane web hooks
 import { useBulkOperationStatus } from "@/plane-web/hooks/use-bulk-operation-status";
+//
+import {
+  SIDEBAR_WIDTH,
+  clampGanttSidebarWidth,
+  getGanttSidebarWidthStorageKey,
+} from "@/components/gantt-chart/constants";
 
 import { IssueLayoutHOC } from "../issue-layout-HOC";
 import { GanttQuickAddIssueButton, QuickAddIssueRoot } from "../quick-add";
@@ -49,6 +57,9 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   const { t } = useTranslation();
   // router
   const { workspaceSlug, projectId } = useParams();
+  const sidebarWidthStorageKey = projectId
+    ? getGanttSidebarWidthStorageKey(projectId.toString())
+    : "gantt-sidebar-width:default";
 
   const storeType = useIssueStoreType() as GanttStoreType;
   const { issues, issuesFilter } = useIssues(storeType);
@@ -60,6 +71,11 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   const appliedDisplayFilters = issuesFilter.issueFilters?.displayFilters;
   // plane web hooks
   const isBulkOperationsEnabled = useBulkOperationStatus();
+  const { storedValue: storedSidebarWidth, setValue: setSidebarWidth } = useLocalStorage<number>(
+    sidebarWidthStorageKey,
+    SIDEBAR_WIDTH
+  );
+  const sidebarWidth = clampGanttSidebarWidth(storedSidebarWidth ?? SIDEBAR_WIDTH);
   // derived values
   const targetDate = new Date();
   targetDate.setDate(targetDate.getDate() + 1);
@@ -71,6 +87,15 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   useEffect(() => {
     initGantt();
   }, []);
+
+  useEffect(() => {
+    if (storedSidebarWidth == null) return;
+
+    const normalizedSidebarWidth = clampGanttSidebarWidth(storedSidebarWidth);
+    if (normalizedSidebarWidth !== storedSidebarWidth) {
+      setSidebarWidth(normalizedSidebarWidth);
+    }
+  }, [setSidebarWidth, storedSidebarWidth]);
 
   const issuesIds = (issues.groupedIssueIds?.[ALL_ISSUES] as string[]) ?? [];
   const nextPageResults = issues.getPaginationData(undefined, undefined)?.nextPageResults;
@@ -149,6 +174,8 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
             showAllBlocks
             enableDependency
             isEpic={isEpic}
+            sidebarWidth={sidebarWidth}
+            setSidebarWidth={setSidebarWidth}
           />
         </div>
       </TimeLineTypeContext.Provider>

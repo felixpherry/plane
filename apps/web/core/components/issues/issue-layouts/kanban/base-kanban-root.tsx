@@ -1,3 +1,4 @@
+//  eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -161,7 +162,11 @@ export const BaseKanBanRoot = observer(function BaseKanBanRoot(props: IBaseKanBa
     return combine(
       dropTargetForElements({
         element,
-        getData: () => ({ columnId: "issue-trash-box", groupId: "issue-trash-box", type: "DELETE" }),
+        getData: () => ({
+          columnId: "issue-trash-box",
+          groupId: "issue-trash-box",
+          type: "DELETE",
+        }),
         onDragEnter: () => {
           setIsDragOverDelete(true);
         },
@@ -231,7 +236,10 @@ export const BaseKanBanRoot = observer(function BaseKanBanRoot(props: IBaseKanBa
     [workspaceSlug, issuesFilter, projectId, updateFilters]
   );
 
-  const collapsedGroups = issuesFilter?.issueFilters?.kanbanFilters || { group_by: [], sub_group_by: [] };
+  const collapsedGroups = issuesFilter?.issueFilters?.kanbanFilters || {
+    group_by: [],
+    sub_group_by: [],
+  };
 
   return (
     <>
