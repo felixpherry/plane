@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import { StoreContext } from "@/lib/store-context";
 import { IssueService } from "@/services/issue";
 import { WorklogService } from "@plane/services";
@@ -59,6 +60,14 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   }
 
   return fallback;
+};
+
+const showTimerToast = (type: TOAST_TYPE.SUCCESS | TOAST_TYPE.ERROR, title: string, message: string): void => {
+  setToast({
+    type,
+    title,
+    message,
+  });
 };
 
 const createTabId = (): string =>
@@ -494,6 +503,7 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
         const worklog = await worklogService.stopTimer(workspaceSlugValue, {
           description,
         });
+        showTimerToast(TOAST_TYPE.SUCCESS, "Timer stopped", "The timer was stopped successfully.");
         setError(null);
         setLastStoppedWorklog(worklog);
         persistLeaseToken(null);
@@ -505,6 +515,7 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
         return worklog;
       } catch (stopError) {
         setError(getErrorMessage(stopError, "Failed to stop timer."));
+        showTimerToast(TOAST_TYPE.ERROR, "Timer not stopped", "The timer could not be stopped.");
         throw stopError;
       } finally {
         setIsMutating(false);
@@ -526,6 +537,7 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
     setIsMutating(true);
     try {
       await worklogService.discardTimer(workspaceSlugValue);
+      showTimerToast(TOAST_TYPE.SUCCESS, "Timer discarded", "The timer was discarded successfully.");
       setError(null);
       setLastStoppedWorklog(null);
       persistLeaseToken(null);
@@ -535,6 +547,7 @@ export const GlobalWorklogTimerProvider = observer(function GlobalWorklogTimerPr
       clearActiveIssue();
     } catch (discardError) {
       setError(getErrorMessage(discardError, "Failed to discard timer."));
+      showTimerToast(TOAST_TYPE.ERROR, "Timer not discarded", "The timer could not be discarded.");
       throw discardError;
     } finally {
       setIsMutating(false);
