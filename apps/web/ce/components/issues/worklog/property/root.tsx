@@ -69,9 +69,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
   const {
     activeTimer,
     activeIssue,
-    elapsedSeconds,
     isMutating,
-    error,
     lastStoppedWorklog,
     startTimer,
     stopTimer,
@@ -221,7 +219,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
   const worklogColumns = [
     {
       key: "started-by",
-      content: "Started by",
+      content: "Logged",
       tdRender: (worklog: IWorklog) => (
         <div className="flex items-center gap-2">
           <Avatar
@@ -261,7 +259,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
     },
     {
       key: "elapsed",
-      content: "Elapsed",
+      content: "Time",
       tdRender: (worklog: IWorklog) => {
         if (editingId === worklog.id) {
           return (
@@ -499,21 +497,17 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
 
       {/* Worklog history */}
       {worklogs.length > 0 && (
-        <div className="mt-2 overflow-hidden rounded-md border-[0.5px] border-subtle bg-surface-1">
-          <div className="border-b border-subtle px-3 py-2">
-            <p className="text-body-md-semibold tracking-wide text-tertiary">Worklog History</p>
-          </div>
-
+        <div className="mt-6 flex flex-col gap-4">
+          <div className="text-h5-medium text-primary">Worklog History</div>
           <div className="overflow-x-auto">
             <Table
               data={worklogs}
               columns={worklogColumns}
               keyExtractor={(worklog) => worklog.id}
               tableClassName="min-w-[1040px]"
-              tHeadTrClassName="divide-x divide-subtle text-13 text-primary"
-              thClassName="text-left font-medium text-tertiary"
-              tBodyTrClassName="group divide-x divide-subtle text-13 text-secondary"
-              tdClassName="align-top"
+              tHeadTrClassName="divide-x-0 divide-y font-semibold text-left"
+              tBodyClassName="divide-none"
+              tBodyTrClassName="divide-none"
             />
           </div>
         </div>
