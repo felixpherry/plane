@@ -4,7 +4,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { observer } from "mobx-react";
 import { Clock, Play, Square, Trash2, Pencil, Plus, Timer } from "lucide-react";
-import { Button, Input, CustomMenu } from "@plane/ui";
+import { Avatar, Button, CustomMenu, Input, Table } from "@plane/ui";
+import { AlertModalCore } from "@plane/ui";
+import { PortalWrapper } from "@plane/propel/portal";
 import type { IWorklog } from "@plane/types";
 import { WorklogService } from "@plane/services";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
@@ -36,6 +38,29 @@ function formatSeconds(totalSeconds: number): string {
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = totalSeconds % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+function formatDateTime(value: string | Date): string {
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return dateTimeFormatter.format(date);
+}
+
+function getWorklogEndTime(worklog: IWorklog): Date | null {
+  const startTime = new Date(worklog.logged_at);
+  if (Number.isNaN(startTime.getTime())) {
+    return null;
+  }
+
+  return new Date(startTime.getTime() + worklog.duration * 60 * 1000);
 }
 
 export const IssueWorklogProperty = observer(function IssueWorklogProperty(props: TIssueWorklogProperty) {
@@ -71,6 +96,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
   const [editHours, setEditHours] = useState("");
   const [editMinutes, setEditMinutes] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [deleteWorklog, setDeleteWorklog] = useState<IWorklog | null>(null);
 
   const fetchWorklogs = useCallback(async () => {
     if (!workspaceSlug || !projectId || !issueId) return;
@@ -169,6 +195,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
   const handleDelete = async (worklogId: string) => {
     try {
       await worklogService.deleteWorklog(workspaceSlug, projectId, issueId, worklogId);
+      setDeleteWorklog(null);
       await fetchWorklogs();
     } catch (error) {
       console.error("Failed to delete worklog:", error);
@@ -181,6 +208,166 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
     setEditMinutes(String(worklog.minutes || 0));
     setEditDescription(worklog.description || "");
   };
+
+  const requestDelete = (worklog: IWorklog) => {
+    setDeleteWorklog(worklog);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteWorklog) return;
+    await handleDelete(deleteWorklog.id);
+  };
+
+  const worklogColumns = [
+    {
+      key: "started-by",
+      content: "Started by",
+      tdRender: (worklog: IWorklog) => (
+        <div className="flex items-center gap-2">
+          <Avatar
+            name={worklog.user_detail.display_name}
+            src={worklog.user_detail.avatar_url ?? undefined}
+            size="sm"
+            className="text-[10px]"
+          />
+          <div className="min-w-0">
+            <div className="truncate text-13 font-medium text-primary">{worklog.user_detail.display_name}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "source",
+      content: "Source",
+      tdRender: (worklog: IWorklog) => (
+        <div className="flex items-center gap-1.5">
+          {worklog.source === "timer" && <Timer className="text-custom-text-400 h-3 w-3" />}
+          <span className="capitalize">{worklog.source === "timer" ? "Timer entry" : "Manual entry"}</span>
+        </div>
+      ),
+    },
+    {
+      key: "start-time",
+      content: "Start time",
+      tdRender: (worklog: IWorklog) => formatDateTime(worklog.logged_at),
+    },
+    {
+      key: "end-time",
+      content: "End time",
+      tdRender: (worklog: IWorklog) => {
+        const endTime = getWorklogEndTime(worklog);
+        return endTime ? formatDateTime(endTime) : "-";
+      },
+    },
+    {
+      key: "elapsed",
+      content: "Elapsed",
+      tdRender: (worklog: IWorklog) => {
+        if (editingId === worklog.id) {
+          return (
+            <div className="flex items-center gap-2">
+              <div className="w-16">
+                <Input
+                  type="number"
+                  mode="primary"
+                  inputSize="sm"
+                  className="w-full"
+                  value={editHours}
+                  onChange={(e) => setEditHours(e.target.value)}
+                  placeholder="0"
+                  min={0}
+                  autoFocus
+                />
+              </div>
+              <span className="text-xs text-custom-text-300">h</span>
+              <div className="w-16">
+                <Input
+                  type="number"
+                  mode="primary"
+                  inputSize="sm"
+                  className="w-full"
+                  value={editMinutes}
+                  onChange={(e) => setEditMinutes(e.target.value)}
+                  placeholder="0"
+                  min={0}
+                  max={59}
+                />
+              </div>
+              <span className="text-xs text-custom-text-300">m</span>
+            </div>
+          );
+        }
+
+        return worklog.display_duration || formatDuration(worklog.duration);
+      },
+    },
+    {
+      key: "description",
+      content: "Description",
+      tdRender: (worklog: IWorklog) => {
+        if (editingId === worklog.id) {
+          return (
+            <Input
+              mode="primary"
+              inputSize="sm"
+              className="w-full min-w-[220px]"
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              placeholder="Description"
+            />
+          );
+        }
+
+        return <span className="block max-w-[220px] truncate">{worklog.description || "No description"}</span>;
+      },
+    },
+    {
+      key: "actions",
+      content: "",
+      tdRender: (worklog: IWorklog) => {
+        if (disabled) return null;
+
+        if (editingId === worklog.id) {
+          return (
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="neutral-primary" size="sm" onClick={() => setEditingId(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleEditSubmit(worklog.id)}
+                disabled={(parseInt(editHours) || 0) === 0 && (parseInt(editMinutes) || 0) === 0}
+              >
+                Save
+              </Button>
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex justify-end">
+            <CustomMenu
+              ellipsis
+              placement="bottom-end"
+              closeOnSelect
+              buttonClassName="opacity-0 transition-opacity group-hover:opacity-100"
+            >
+              <CustomMenu.MenuItem onClick={() => startEdit(worklog)} className="flex items-center gap-2">
+                <Pencil className="h-3 w-3" /> Edit
+              </CustomMenu.MenuItem>
+              <CustomMenu.MenuItem
+                onClick={() => requestDelete(worklog)}
+                className="flex items-center gap-2 text-red-500"
+              >
+                <Trash2 className="h-3 w-3" /> Delete
+              </CustomMenu.MenuItem>
+            </CustomMenu>
+          </div>
+        );
+      },
+    },
+  ];
 
   if (isLoading) return null;
 
@@ -312,97 +499,45 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
 
       {/* Worklog history */}
       {worklogs.length > 0 && (
-        <div className="mt-1 space-y-1">
-          {worklogs.slice(0, 5).map((worklog) => (
-            <div key={worklog.id} className="group">
-              {editingId === worklog.id ? (
-                <div className="rounded-md border-[0.5px] border-subtle bg-surface-2 p-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <Input
-                        type="number"
-                        mode="primary"
-                        inputSize="sm"
-                        className="w-full"
-                        value={editHours}
-                        onChange={(e) => setEditHours(e.target.value)}
-                        placeholder="0"
-                        min={0}
-                        autoFocus
-                      />
-                    </div>
-                    <span className="text-xs text-custom-text-300">h</span>
-                    <div className="flex-1">
-                      <Input
-                        type="number"
-                        mode="primary"
-                        inputSize="sm"
-                        className="w-full"
-                        value={editMinutes}
-                        onChange={(e) => setEditMinutes(e.target.value)}
-                        placeholder="0"
-                        min={0}
-                        max={59}
-                      />
-                    </div>
-                    <span className="text-xs text-custom-text-300">m</span>
-                  </div>
-                  <div className="mt-1">
-                    <Input
-                      mode="primary"
-                      inputSize="sm"
-                      className="w-full"
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      placeholder="Description"
-                    />
-                  </div>
-                  <div className="mt-2 flex items-center justify-end gap-2">
-                    <Button variant="neutral-primary" size="sm" onClick={() => setEditingId(null)}>
-                      Cancel
-                    </Button>
-                    <Button variant="primary" size="sm" onClick={() => handleEditSubmit(worklog.id)}>
-                      Save
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="hover:bg-custom-background-80 flex items-center justify-between rounded-sm px-1.5 py-1 transition-colors">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="text-xs shrink-0 font-medium text-primary">
-                      {worklog.display_duration || formatDuration(worklog.duration)}
-                    </span>
-                    {worklog.description && (
-                      <span className="text-xs text-custom-text-300 truncate">— {worklog.description}</span>
-                    )}
-                    {worklog.source === "timer" && <Timer className="text-custom-text-400 h-2.5 w-2.5 shrink-0" />}
-                  </div>
-                  {!disabled && (
-                    <CustomMenu
-                      ellipsis
-                      placement="bottom-end"
-                      closeOnSelect
-                      buttonClassName="opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <CustomMenu.MenuItem onClick={() => startEdit(worklog)} className="flex items-center gap-2">
-                        <Pencil className="h-3 w-3" /> Edit
-                      </CustomMenu.MenuItem>
-                      <CustomMenu.MenuItem
-                        onClick={() => handleDelete(worklog.id)}
-                        className="flex items-center gap-2 text-red-500"
-                      >
-                        <Trash2 className="h-3 w-3" /> Delete
-                      </CustomMenu.MenuItem>
-                    </CustomMenu>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-          {worklogs.length > 5 && (
-            <span className="text-xs text-custom-text-400 block px-1.5">+{worklogs.length - 5} more entries</span>
-          )}
+        <div className="mt-2 overflow-hidden rounded-md border-[0.5px] border-subtle bg-surface-1">
+          <div className="border-b border-subtle px-3 py-2">
+            <p className="text-body-md-semibold tracking-wide text-tertiary">Worklog History</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <Table
+              data={worklogs}
+              columns={worklogColumns}
+              keyExtractor={(worklog) => worklog.id}
+              tableClassName="min-w-[1040px]"
+              tHeadTrClassName="divide-x divide-subtle text-13 text-primary"
+              thClassName="text-left font-medium text-tertiary"
+              tBodyTrClassName="group divide-x divide-subtle text-13 text-secondary"
+              tdClassName="align-top"
+            />
+          </div>
         </div>
+      )}
+
+      {deleteWorklog && (
+        <PortalWrapper portalId="full-screen-portal">
+          <div data-prevent-outside-click="true">
+            <AlertModalCore
+              isOpen={!!deleteWorklog}
+              handleClose={() => setDeleteWorklog(null)}
+              handleSubmit={confirmDelete}
+              isSubmitting={false}
+              title="Delete worklog"
+              content={
+                <>
+                  Are you sure you want to delete the worklog for{" "}
+                  <span className="font-medium break-words text-primary">{deleteWorklog.user_detail.display_name}</span>
+                  ? This action cannot be undone.
+                </>
+              }
+            />
+          </div>
+        </PortalWrapper>
       )}
     </>
   );
