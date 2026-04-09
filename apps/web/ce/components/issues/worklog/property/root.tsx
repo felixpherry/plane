@@ -3,14 +3,17 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { observer } from "mobx-react";
+import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { useTranslation } from "@plane/i18n";
 import { Clock, Play, Square, Trash2, Pencil, Plus, Timer } from "lucide-react";
 import { Avatar, Button, CustomMenu, Input, Table } from "@plane/ui";
 import { AlertModalCore } from "@plane/ui";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { PortalWrapper } from "@plane/propel/portal";
 import type { IWorklog } from "@plane/types";
 import { WorklogService } from "@plane/services";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
-import { useUser } from "@/hooks/store/user";
+import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { useGlobalWorklogTimer } from "@/plane-web/components/issues/worklog/timer";
 
 const worklogService = new WorklogService();
@@ -63,9 +66,33 @@ function getWorklogEndTime(worklog: IWorklog): Date | null {
   return new Date(startTime.getTime() + worklog.duration * 60 * 1000);
 }
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const response = error as {
+      response?: {
+        data?: {
+          error?: unknown;
+        };
+      };
+    };
+
+    if (typeof response.response?.data?.error === "string" && response.response.data.error.trim().length > 0) {
+      return response.response.data.error;
+    }
+  }
+
+  return fallback;
+}
+
 export const IssueWorklogProperty = observer(function IssueWorklogProperty(props: TIssueWorklogProperty) {
   const { workspaceSlug, projectId, issueId, disabled, assigneeIds = [] } = props;
+  const { t } = useTranslation();
   const { data: currentUser } = useUser();
+  const { allowPermissions } = useUserPermissions();
   const {
     activeTimer,
     activeIssue,
@@ -95,6 +122,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
   const [editMinutes, setEditMinutes] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [deleteWorklog, setDeleteWorklog] = useState<IWorklog | null>(null);
+  const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug, projectId);
 
   const fetchWorklogs = useCallback(async () => {
     if (!workspaceSlug || !projectId || !issueId) return;
@@ -104,7 +132,11 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
       setWorklogs(data.results || []);
       setTotalDuration(data.total_duration || 0);
     } catch (error) {
-      console.error("Failed to fetch worklogs:", error);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: getErrorMessage(error, "Failed to fetch worklogs:"),
+      });
     } finally {
       setIsLoading(false);
     }
@@ -128,7 +160,11 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
     try {
       await startTimer({ issueId, projectId });
     } catch (error) {
-      console.error("Failed to start timer:", error);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: getErrorMessage(error, "Failed to start timer"),
+      });
     }
   };
 
@@ -136,15 +172,11 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
     try {
       await stopTimer({ description: "" });
     } catch (error) {
-      console.error("Failed to stop timer:", error);
-    }
-  };
-
-  const handleDiscardTimer = async () => {
-    try {
-      await discardTimer();
-    } catch (error) {
-      console.error("Failed to discard timer:", error);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: getErrorMessage(error, "Failed to stop timer"),
+      });
     }
   };
 
@@ -165,8 +197,17 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
       setDescription("");
       setView("idle");
       await fetchWorklogs();
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("toast.success"),
+        message: "Worklog created successfully.",
+      });
     } catch (error) {
-      console.error("Failed to create worklog:", error);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: getErrorMessage(error, "Could not create worklog."),
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -185,8 +226,17 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
       });
       setEditingId(null);
       await fetchWorklogs();
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("toast.success"),
+        message: "Worklog updated successfully.",
+      });
     } catch (error) {
-      console.error("Failed to update worklog:", error);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: getErrorMessage(error, "Could not update worklog."),
+      });
     }
   };
 
@@ -195,8 +245,17 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
       await worklogService.deleteWorklog(workspaceSlug, projectId, issueId, worklogId);
       setDeleteWorklog(null);
       await fetchWorklogs();
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("toast.success"),
+        message: "Worklog deleted successfully.",
+      });
     } catch (error) {
-      console.error("Failed to delete worklog:", error);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: getErrorMessage(error, "Could not delete worklog."),
+      });
     }
   };
 
@@ -319,11 +378,14 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
         return <span className="block max-w-[220px] truncate">{worklog.description || "No description"}</span>;
       },
     },
-    {
+  ];
+
+  if (isAdmin) {
+    worklogColumns.push({
       key: "actions",
-      content: "",
+      content: "Actions",
       tdRender: (worklog: IWorklog) => {
-        if (disabled) return null;
+        // if (disabled) return null;
 
         if (editingId === worklog.id) {
           return (
@@ -344,13 +406,8 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
         }
 
         return (
-          <div className="flex justify-end">
-            <CustomMenu
-              ellipsis
-              placement="bottom-end"
-              closeOnSelect
-              buttonClassName="opacity-0 transition-opacity group-hover:opacity-100"
-            >
+          <div className="flex justify-start">
+            <CustomMenu ellipsis placement="bottom-end" closeOnSelect>
               <CustomMenu.MenuItem onClick={() => startEdit(worklog)} className="flex items-center gap-2">
                 <Pencil className="h-3 w-3" /> Edit
               </CustomMenu.MenuItem>
@@ -364,8 +421,8 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
           </div>
         );
       },
-    },
-  ];
+    });
+  }
 
   if (isLoading) return null;
 
