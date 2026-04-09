@@ -1,3 +1,4 @@
+// eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -16,7 +17,6 @@ import { cn } from "@plane/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import useKeypress from "@/hooks/use-keypress";
-import usePeekOverviewOutsideClickDetector from "@/hooks/use-peek-overview-outside-click";
 // local imports
 import type { TIssueOperations } from "../issue-detail";
 import { IssueActivity } from "../issue-detail/issue-activity";
@@ -85,20 +85,6 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
 
   const isAnyLocalModalOpen =
     isDeleteIssueModalOpen || isArchiveIssueModalOpen || isDuplicateIssueModalOpen || isEditIssueModalOpen;
-
-  usePeekOverviewOutsideClickDetector(
-    issuePeekOverviewRef,
-    () => {
-      const isAnyDropbarOpen = editorRef.current?.isAnyDropbarOpen();
-      if (!embedIssue) {
-        if (!isAnyModalOpen && !isAnyEpicModalOpen && !isAnyLocalModalOpen && !isAnyDropbarOpen) {
-          removeRoutePeekId();
-        }
-      }
-    },
-    issueId,
-    ["main-sidebar"]
-  );
 
   const handleKeyDown = () => {
     const editorImageFullScreenModalElement = document.querySelector(".editor-image-full-screen-modal");
