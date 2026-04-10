@@ -23,7 +23,6 @@ import type {
   IIssueActivityStoreActions,
   TActivityLoader,
 } from "@/plane-web/store/issue/issue-details/activity.store";
-import type { RootStore } from "@/plane-web/store/root.store";
 import type { TIssueRelationTypes } from "@/plane-web/types";
 import type { IIssueRootStore } from "../root.store";
 import { IssueAttachmentStore } from "./attachment.store";
@@ -36,6 +35,8 @@ import { IssueStore } from "./issue.store";
 import type { IIssueStore, IIssueStoreActions } from "./issue.store";
 import { IssueLinkStore } from "./link.store";
 import type { IIssueLinkStore, IIssueLinkStoreActions } from "./link.store";
+import { WorkItemPageLinkStore } from "./page_link.store";
+import type { IWorkItemPageLinkStore, IWorkItemPageLinkStoreActions } from "./page_link.store";
 import { IssueReactionStore } from "./reaction.store";
 import type { IIssueReactionStore, IIssueReactionStoreActions } from "./reaction.store";
 import { IssueRelationStore } from "./relation.store";
@@ -71,6 +72,7 @@ export interface IIssueDetail
     IIssueReactionStoreActions,
     IIssueLinkStoreActions,
     IIssueSubIssuesStoreActions,
+    IWorkItemPageLinkStoreActions,
     IIssueSubscriptionStoreActions,
     IIssueAttachmentStoreActions,
     IIssueRelationStoreActions,
@@ -86,6 +88,7 @@ export interface IIssueDetail
   lastWidgetAction: TWorkItemWidgets | null;
   isCreateIssueModalOpen: boolean;
   isIssueLinkModalOpen: boolean;
+  isWorkItemPageLinkModalOpen: boolean;
   isParentIssueModalOpen: string | null;
   isDeleteIssueModalOpen: string | null;
   isArchiveIssueModalOpen: string | null;
@@ -102,6 +105,7 @@ export interface IIssueDetail
   setIssueLinkData: (issueLinkData: TIssueLink | null) => void;
   toggleCreateIssueModal: (value: boolean) => void;
   toggleIssueLinkModal: (value: boolean) => void;
+  toggleWorkItemPageLinkModal: (value: boolean) => void;
   toggleParentIssueModal: (issueId: string | null) => void;
   toggleDeleteIssueModal: (issueId: string | null) => void;
   toggleArchiveIssueModal: (value: string | null) => void;
@@ -109,7 +113,7 @@ export interface IIssueDetail
   toggleSubIssuesModal: (value: string | null) => void;
   toggleDeleteAttachmentModal: (attachmentId: string | null) => void;
   setOpenWidgets: (state: TWorkItemWidgets[]) => void;
-  setLastWidgetAction: (action: TWorkItemWidgets) => void;
+  setLastWidgetAction: (widgetAction: TWorkItemWidgets) => void;
   toggleOpenWidget: (state: TWorkItemWidgets) => void;
   setRelationKey: (relationKey: TIssueRelationTypes | null) => void;
   setIssueCrudOperationState: (state: TIssueCrudOperationState) => void;
@@ -123,6 +127,7 @@ export interface IIssueDetail
   commentReaction: IIssueCommentReactionStore;
   subIssues: IIssueSubIssuesStore;
   link: IIssueLinkStore;
+  pageLink: IWorkItemPageLinkStore;
   subscription: IIssueSubscriptionStore;
   relation: IIssueRelationStore;
 }
@@ -148,6 +153,7 @@ export abstract class IssueDetail implements IIssueDetail {
   lastWidgetAction: TWorkItemWidgets | null = null;
   isCreateIssueModalOpen: boolean = false;
   isIssueLinkModalOpen: boolean = false;
+  isWorkItemPageLinkModalOpen: boolean = false;
   isParentIssueModalOpen: string | null = null;
   isDeleteIssueModalOpen: string | null = null;
   isArchiveIssueModalOpen: string | null = null;
@@ -163,6 +169,7 @@ export abstract class IssueDetail implements IIssueDetail {
   attachment: IIssueAttachmentStore;
   subIssues: IIssueSubIssuesStore;
   link: IIssueLinkStore;
+  pageLink: IWorkItemPageLinkStore;
   subscription: IIssueSubscriptionStore;
   relation: IIssueRelationStore;
   activity: IIssueActivityStore;
@@ -178,6 +185,7 @@ export abstract class IssueDetail implements IIssueDetail {
       issueCrudOperationState: observable,
       isCreateIssueModalOpen: observable,
       isIssueLinkModalOpen: observable.ref,
+      isWorkItemPageLinkModalOpen: observable.ref,
       isParentIssueModalOpen: observable.ref,
       isDeleteIssueModalOpen: observable.ref,
       isArchiveIssueModalOpen: observable.ref,
@@ -194,6 +202,7 @@ export abstract class IssueDetail implements IIssueDetail {
       setIssueLinkData: action,
       toggleCreateIssueModal: action,
       toggleIssueLinkModal: action,
+      toggleWorkItemPageLinkModal: action,
       toggleParentIssueModal: action,
       toggleDeleteIssueModal: action,
       toggleArchiveIssueModal: action,
@@ -218,6 +227,7 @@ export abstract class IssueDetail implements IIssueDetail {
     this.commentReaction = new IssueCommentReactionStore(this);
     this.subIssues = new IssueSubIssuesStore(this, serviceType);
     this.link = new IssueLinkStore(this, serviceType);
+    this.pageLink = new WorkItemPageLinkStore(this);
     this.subscription = new IssueSubscriptionStore(this, serviceType);
     this.relation = new IssueRelationStore(this);
   }
@@ -227,6 +237,7 @@ export abstract class IssueDetail implements IIssueDetail {
     return (
       this.isCreateIssueModalOpen ||
       this.isIssueLinkModalOpen ||
+      this.isWorkItemPageLinkModalOpen ||
       !!this.isParentIssueModalOpen ||
       !!this.isDeleteIssueModalOpen ||
       !!this.isArchiveIssueModalOpen ||
@@ -249,6 +260,7 @@ export abstract class IssueDetail implements IIssueDetail {
   setPeekIssue = (peekIssue: TPeekIssue | undefined) => (this.peekIssue = peekIssue);
   toggleCreateIssueModal = (value: boolean) => (this.isCreateIssueModalOpen = value);
   toggleIssueLinkModal = (value: boolean) => (this.isIssueLinkModalOpen = value);
+  toggleWorkItemPageLinkModal = (value: boolean) => (this.isWorkItemPageLinkModalOpen = value);
   toggleParentIssueModal = (issueId: string | null) => (this.isParentIssueModalOpen = issueId);
   toggleDeleteIssueModal = (issueId: string | null) => (this.isDeleteIssueModalOpen = issueId);
   toggleArchiveIssueModal = (issueId: string | null) => (this.isArchiveIssueModalOpen = issueId);
@@ -260,8 +272,8 @@ export abstract class IssueDetail implements IIssueDetail {
     this.openWidgets = state;
     if (this.lastWidgetAction) this.lastWidgetAction = null;
   };
-  setLastWidgetAction = (action: TWorkItemWidgets) => {
-    this.openWidgets = [action];
+  setLastWidgetAction = (widgetAction: TWorkItemWidgets) => {
+    this.openWidgets = [widgetAction];
   };
   toggleOpenWidget = (state: TWorkItemWidgets) => {
     if (this.openWidgets && this.openWidgets.includes(state))
@@ -336,6 +348,14 @@ export abstract class IssueDetail implements IIssueDetail {
   ) => this.link.updateLink(workspaceSlug, projectId, issueId, linkId, data);
   removeLink = async (workspaceSlug: string, projectId: string, issueId: string, linkId: string) =>
     this.link.removeLink(workspaceSlug, projectId, issueId, linkId);
+
+  // page links
+  addPageLinks = (issueId: string, links: Parameters<IWorkItemPageLinkStoreActions["addPageLinks"]>[1]) =>
+    this.pageLink.addPageLinks(issueId, links);
+  fetchPageLinks = async (workspaceSlug: string, projectId: string, issueId: string) =>
+    this.pageLink.fetchPageLinks(workspaceSlug, projectId, issueId);
+  replacePageLinks = async (workspaceSlug: string, projectId: string, issueId: string, pageIds: string[]) =>
+    this.pageLink.replacePageLinks(workspaceSlug, projectId, issueId, pageIds);
 
   // sub issues
   fetchSubIssues = async (workspaceSlug: string, projectId: string, issueId: string) =>

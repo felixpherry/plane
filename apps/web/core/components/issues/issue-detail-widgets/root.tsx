@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type { FC } from "react";
 import React from "react";
 // plane imports
 import type { TIssueServiceType, TWorkItemWidgets } from "@plane/types";
@@ -59,6 +58,7 @@ export function IssueDetailWidgets(props: Props) {
           workspaceSlug={workspaceSlug}
           projectId={projectId}
           issueId={issueId}
+          disabled={disabled}
           issueServiceType={issueServiceType}
           hideWidgets={hideWidgets}
         />

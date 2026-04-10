@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type { FC } from "react";
 import React from "react";
 import { observer } from "mobx-react";
 // plane imports
@@ -17,6 +16,7 @@ import { useTimeLineRelationOptions } from "@/plane-web/components/relations";
 // local imports
 import { AttachmentsCollapsible } from "./attachments";
 import { LinksCollapsible } from "./links";
+import { WorkItemPageLinksCollapsible } from "./link-pages";
 import { RelationsCollapsible } from "./relations";
 import { SubIssuesCollapsible } from "./sub-issues";
 
@@ -36,6 +36,7 @@ export const IssueDetailWidgetCollapsibles = observer(function IssueDetailWidget
     issue: { getIssueById },
     subIssues: { subIssuesByIssueId },
     attachment: { getAttachmentsCountByIssueId, getAttachmentsUploadStatusByIssueId },
+    pageLink: { getPageLinkCountByIssueId },
     relation: { getRelationCountByIssueId },
   } = useIssueDetail(issueServiceType);
   // derived values
@@ -47,6 +48,8 @@ export const IssueDetailWidgetCollapsibles = observer(function IssueDetailWidget
   const shouldRenderSubIssues = !!subIssues && subIssues.length > 0 && !hideWidgets?.includes("sub-work-items");
   const shouldRenderRelations = issueRelationsCount > 0 && !hideWidgets?.includes("relations");
   const shouldRenderLinks = !!issue?.link_count && issue?.link_count > 0 && !hideWidgets?.includes("links");
+  const linkedPagesCount = getPageLinkCountByIssueId(issueId);
+  const shouldRenderLinkedPages = linkedPagesCount > 0 && !hideWidgets?.includes("link-pages");
   const attachmentUploads = getAttachmentsUploadStatusByIssueId(issueId);
   const attachmentsCount = getAttachmentsCountByIssueId(issueId);
   const shouldRenderAttachments =
@@ -98,6 +101,15 @@ export const IssueDetailWidgetCollapsibles = observer(function IssueDetailWidget
         workItemId={issueId}
         workspaceSlug={workspaceSlug}
       />
+      {shouldRenderLinkedPages && (
+        <WorkItemPageLinksCollapsible
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          issueId={issueId}
+          disabled={disabled}
+          issueServiceType={issueServiceType}
+        />
+      )}
     </div>
   );
 });

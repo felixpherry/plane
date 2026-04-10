@@ -31,6 +31,7 @@ from plane.app.views import (
     WorkItemDescriptionVersionEndpoint,
     IssueMetaEndpoint,
     IssueDetailIdentifierEndpoint,
+    WorkItemPageLinkEndpoint,
 )
 
 urlpatterns = [
@@ -267,6 +268,11 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:work_item_id>/description-versions/",
         WorkItemDescriptionVersionEndpoint.as_view(),
         name="work-item-versions",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:work_item_id>/page-links/",
+        WorkItemPageLinkEndpoint.as_view(),
+        name="work-item-page-links",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:work_item_id>/description-versions/<uuid:pk>/",

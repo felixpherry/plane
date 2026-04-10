@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type { FC } from "react";
 import React from "react";
 import { observer } from "mobx-react";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -19,6 +18,7 @@ import { WorkItemAdditionalWidgetModals } from "@/plane-web/components/issues/is
 import { IssueLinkCreateUpdateModal } from "../issue-detail/links/create-update-link-modal";
 // helpers
 import { CreateUpdateIssueModal } from "../issue-modal/modal";
+import { WorkItemPageLinksModal } from "./link-pages";
 import { useLinkOperations } from "./links/helper";
 import { useSubIssueOperations } from "./sub-issues/helper";
 
@@ -26,16 +26,19 @@ type Props = {
   workspaceSlug: string;
   projectId: string;
   issueId: string;
+  disabled: boolean;
   issueServiceType: TIssueServiceType;
   hideWidgets?: TWorkItemWidgets[];
 };
 
 export const IssueDetailWidgetModals = observer(function IssueDetailWidgetModals(props: Props) {
-  const { workspaceSlug, projectId, issueId, issueServiceType, hideWidgets } = props;
+  const { workspaceSlug, projectId, issueId, disabled, issueServiceType, hideWidgets } = props;
   // store hooks
   const {
     isIssueLinkModalOpen,
+    isWorkItemPageLinkModalOpen,
     toggleIssueLinkModal: toggleIssueLinkModalStore,
+    toggleWorkItemPageLinkModal,
     setIssueLinkData,
     isCreateIssueModalOpen,
     toggleCreateIssueModal,
@@ -162,6 +165,18 @@ export const IssueDetailWidgetModals = observer(function IssueDetailWidgetModals
           isModalOpen={isIssueLinkModalOpen}
           handleOnClose={handleIssueLinkModalOnClose}
           linkOperations={handleLinkOperations}
+          issueServiceType={issueServiceType}
+        />
+      )}
+
+      {!hideWidgets?.includes("link-pages") && (
+        <WorkItemPageLinksModal
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          issueId={issueId}
+          disabled={disabled}
+          isOpen={isWorkItemPageLinkModalOpen}
+          onClose={() => toggleWorkItemPageLinkModal(false)}
           issueServiceType={issueServiceType}
         />
       )}

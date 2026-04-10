@@ -829,7 +829,17 @@ export default {
       sub_issue: "Add sub-work item",
       relation: "Add relation",
       link: "Add link",
+      link_pages: "Link pages",
       existing: "Add existing work item",
+    },
+    link_pages: {
+      title: "Link pages",
+      description: "Select pages to link to this work item.",
+      search_placeholder: "Search pages",
+      no_pages: "No pages found.",
+      selected_count: "{count} selected",
+      load_failed: "Could not load linked pages.",
+      update_failed: "Could not update linked pages.",
     },
     remove: {
       label: "Remove work item",
