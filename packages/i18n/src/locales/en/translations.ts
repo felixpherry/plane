@@ -835,7 +835,7 @@ export default {
     link_pages: {
       title: "Link pages",
       description: "Select pages to link to this work item.",
-      search_placeholder: "Search pages",
+      search_placeholder: "Search for pages",
       no_pages: "No pages found.",
       selected_count: "{count} selected",
       load_failed: "Could not load linked pages.",

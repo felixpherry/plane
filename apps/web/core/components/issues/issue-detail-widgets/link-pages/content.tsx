@@ -5,7 +5,6 @@
  */
 
 import React from "react";
-import { useRouter } from "next/navigation";
 import { observer } from "mobx-react";
 import { PageIcon } from "@plane/propel/icons";
 // plane imports
@@ -13,6 +12,7 @@ import type { TIssueServiceType } from "@plane/types";
 import { getPageName } from "@plane/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import Link from "next/link";
 
 type Props = {
   workspaceSlug: string;
@@ -23,7 +23,6 @@ type Props = {
 
 export const WorkItemPageLinksCollapsibleContent = observer(function WorkItemPageLinksCollapsibleContent(props: Props) {
   const { workspaceSlug, projectId, issueId, issueServiceType } = props;
-  const router = useRouter();
   const {
     pageLink: { getLinkById, getLinksByIssueId },
   } = useIssueDetail(issueServiceType);
@@ -39,15 +38,15 @@ export const WorkItemPageLinksCollapsibleContent = observer(function WorkItemPag
         if (!link || !page?.id) return null;
 
         return (
-          <button
+          <Link
             key={link.id}
             type="button"
             className="group flex h-10 w-full items-center gap-2 rounded-sm border-[0.5px] border-subtle bg-surface-2 px-3 text-left hover:bg-layer-1"
-            onClick={() => router.push(`/${workspaceSlug}/projects/${projectId}/pages/${page.id}`)}
+            href={`/${workspaceSlug}/projects/${projectId}/pages/${page.id}`}
           >
-            <PageIcon className="size-4 flex-shrink-0 text-tertiary group-hover:text-primary" />
+            <PageIcon className="size-4 shrink-0 text-tertiary group-hover:text-primary" />
             <span className="min-w-0 flex-1 truncate text-body-xs-regular text-primary">{getPageName(page.name)}</span>
-          </button>
+          </Link>
         );
       })}
     </div>

@@ -11,18 +11,15 @@ import type { TIssueServiceType } from "@plane/types";
 import { CollapsibleButton } from "@plane/ui";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
-// local imports
-import { WorkItemPageLinksActionButton } from "./quick-action-button";
 
 type Props = {
   isOpen: boolean;
   issueId: string;
-  disabled: boolean;
   issueServiceType: TIssueServiceType;
 };
 
 export const WorkItemPageLinksCollapsibleTitle = observer(function WorkItemPageLinksCollapsibleTitle(props: Props) {
-  const { isOpen, issueId, disabled, issueServiceType } = props;
+  const { isOpen, issueId, issueServiceType } = props;
   const {
     pageLink: { getPageLinkCountByIssueId },
   } = useIssueDetail(issueServiceType);
@@ -32,9 +29,10 @@ export const WorkItemPageLinksCollapsibleTitle = observer(function WorkItemPageL
   return (
     <CollapsibleButton
       isOpen={isOpen}
-      title={`Link pages ${pageCount}`}
-      actionItemElement={
-        !disabled && <WorkItemPageLinksActionButton issueServiceType={issueServiceType} disabled={disabled} />
+      title={
+        <span className="flex items-center gap-2">
+          <span>Link pages</span> <span className="text-12 text-disabled">{pageCount}</span>
+        </span>
       }
     />
   );

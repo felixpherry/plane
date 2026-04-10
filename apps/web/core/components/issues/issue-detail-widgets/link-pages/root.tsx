@@ -19,12 +19,11 @@ type Props = {
   workspaceSlug: string;
   projectId: string;
   issueId: string;
-  disabled?: boolean;
   issueServiceType: TIssueServiceType;
 };
 
 export const WorkItemPageLinksCollapsible = observer(function WorkItemPageLinksCollapsible(props: Props) {
-  const { workspaceSlug, projectId, issueId, disabled = false, issueServiceType } = props;
+  const { workspaceSlug, projectId, issueId, issueServiceType } = props;
   const { openWidgets, toggleOpenWidget } = useIssueDetail(issueServiceType);
   const isCollapsibleOpen = openWidgets.includes("link-pages");
 
@@ -36,7 +35,6 @@ export const WorkItemPageLinksCollapsible = observer(function WorkItemPageLinksC
         <WorkItemPageLinksCollapsibleTitle
           isOpen={isCollapsibleOpen}
           issueId={issueId}
-          disabled={disabled}
           issueServiceType={issueServiceType}
         />
       }
