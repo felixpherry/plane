@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { FC, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Network } from "lucide-react";
 // plane imports
 import { Tooltip } from "@plane/propel/tooltip";
@@ -40,7 +40,10 @@ export function IssueActivityBlockComponent(props: TIssueActivityBlockComponent)
         ends === "top" ? `pb-2` : ends === "bottom" ? `pt-2` : `py-2`
       }`}
     >
-      <div className="absolute top-0 bottom-0 left-[13px] w-px bg-layer-3" aria-hidden />
+      <div
+        className={`absolute left-[13px] w-px bg-layer-3 ${ends === "bottom" ? "top-0 h-[14px]" : "top-0 bottom-0"}`}
+        aria-hidden
+      />
       <div className="z-[4] flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-subtle bg-layer-2 text-secondary shadow-raised-100">
         {icon ? icon : <Network className="h-3.5 w-3.5" />}
       </div>
