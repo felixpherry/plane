@@ -26,12 +26,12 @@ from rest_framework.permissions import AllowAny
 # Module imports
 from plane.app.serializers import (
     AccountSerializer,
-    IssueActivitySerializer,
     ProfileSerializer,
     UserMeSerializer,
     UserMeSettingsSerializer,
     UserSerializer,
 )
+from plane.app.user_activity import paginate_mixed_user_activity
 from plane.app.views.base import BaseAPIView, BaseViewSet
 from plane.db.models import (
     Account,
@@ -39,6 +39,7 @@ from plane.db.models import (
     Profile,
     ProjectMember,
     User,
+    Worklog,
     WorkspaceMember,
     WorkspaceMemberInvite,
     Session,
@@ -379,15 +380,20 @@ class UpdateUserTourCompletedEndpoint(BaseAPIView):
 
 class UserActivityEndpoint(BaseAPIView, BasePaginator):
     def get(self, request):
-        queryset = IssueActivity.objects.filter(actor=request.user).select_related(
+        issue_queryset = IssueActivity.objects.filter(actor=request.user).select_related(
             "actor", "workspace", "issue", "project"
         )
+        worklog_queryset = Worklog.objects.filter(
+            user=request.user,
+            deleted_at__isnull=True,
+            project__archived_at__isnull=True,
+        ).select_related("user", "workspace", "issue", "project")
 
-        return self.paginate(
-            order_by=request.GET.get("order_by", "-created_at"),
+        return paginate_mixed_user_activity(
             request=request,
-            queryset=queryset,
-            on_results=lambda issue_activities: IssueActivitySerializer(issue_activities, many=True).data,
+            paginator=self,
+            issue_queryset=issue_queryset,
+            worklog_queryset=worklog_queryset,
         )
 
 

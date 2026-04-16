@@ -5,7 +5,10 @@
  */
 
 import type { TUserPermissions } from "./enums";
+import type { TPaginationInfo } from "./common";
 import type { IIssueActivity, TIssuePriorities, TStateGroups } from ".";
+import type { IProjectLite } from "./project";
+import type { IWorkspaceLite } from "./workspace";
 import type { TLoginMediums } from "./instance";
 
 /**
@@ -128,18 +131,64 @@ export interface IUserStateDistribution {
   state_count: number;
 }
 
-export interface IUserActivityResponse {
-  count: number;
+export interface IUserActivityResponse extends TPaginationInfo {
   extra_stats: null;
-  next_cursor: string;
-  next_page_results: boolean;
-  prev_cursor: string;
-  prev_page_results: boolean;
-  results: IIssueActivity[];
-  total_pages: number;
-  total_results: number;
+  grouped_by?: string | null;
+  sub_grouped_by?: string | null;
+  total_count?: number;
+  results: TUserTimelineActivity[];
 }
 
+export type IUserTimelineIssueDetail = NonNullable<IIssueActivity["issue_detail"]>;
+
+export interface IUserTimelineActivityBase {
+  id: string;
+  activity_kind: "issue_activity" | "worklog";
+  actor: string | null;
+  actor_detail: IUserLite | null;
+  issue: string | null;
+  issue_detail: IUserTimelineIssueDetail | null;
+  project: string;
+  project_detail: IProjectLite;
+  workspace: string;
+  workspace_detail: IWorkspaceLite;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IUserTimelineIssueActivityPayload {
+  attachments: string[];
+  comment: string;
+  field: string | null;
+  issue_comment: string | null;
+  new_identifier: string | null;
+  new_value: string | null;
+  old_identifier: string | null;
+  old_value: string | null;
+  verb: string;
+}
+
+export interface IUserTimelineIssueActivity extends IUserTimelineActivityBase {
+  activity_kind: "issue_activity";
+  payload: IUserTimelineIssueActivityPayload;
+}
+
+export interface IUserTimelineWorklogPayload {
+  description: string;
+  display_duration: string;
+  duration: number;
+  hours: number;
+  logged_at: string;
+  minutes: number;
+  source: "manual" | "timer";
+}
+
+export interface IUserTimelineWorklogActivity extends IUserTimelineActivityBase {
+  activity_kind: "worklog";
+  payload: IUserTimelineWorklogPayload;
+}
+
+export type TUserTimelineActivity = IUserTimelineIssueActivity | IUserTimelineWorklogActivity;
 export type UserAuth = {
   isMember: boolean;
   isOwner: boolean;

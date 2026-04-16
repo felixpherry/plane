@@ -33,11 +33,11 @@ from plane.app.permissions import WorkspaceEntityPermission, WorkspaceViewerPerm
 
 # Module imports
 from plane.app.serializers import (
-    IssueActivitySerializer,
     ProjectMemberSerializer,
     WorkSpaceSerializer,
     WorkspaceUserPropertiesSerializer,
 )
+from plane.app.user_activity import paginate_mixed_user_activity
 from plane.app.views.base import BaseAPIView
 from plane.db.models import (
     CycleIssue,
@@ -49,6 +49,7 @@ from plane.db.models import (
     Project,
     ProjectMember,
     User,
+    Worklog,
     Workspace,
     WorkspaceMember,
     WorkspaceUserProperties,
@@ -373,7 +374,7 @@ class WorkspaceUserActivityEndpoint(BaseAPIView):
     def get(self, request, slug, user_id):
         projects = request.query_params.getlist("project", [])
 
-        queryset = IssueActivity.objects.filter(
+        issue_queryset = IssueActivity.objects.filter(
             ~Q(field__in=["comment", "vote", "reaction", "draft"]),
             workspace__slug=slug,
             project__project_projectmember__member=request.user,
@@ -381,15 +382,24 @@ class WorkspaceUserActivityEndpoint(BaseAPIView):
             project__archived_at__isnull=True,
             actor=user_id,
         ).select_related("actor", "workspace", "issue", "project")
+        worklog_queryset = Worklog.objects.filter(
+            workspace__slug=slug,
+            project__project_projectmember__member=request.user,
+            project__project_projectmember__is_active=True,
+            project__archived_at__isnull=True,
+            user_id=user_id,
+            deleted_at__isnull=True,
+        ).select_related("user", "workspace", "issue", "project")
 
         if projects:
-            queryset = queryset.filter(project__in=projects)
+            issue_queryset = issue_queryset.filter(project__in=projects)
+            worklog_queryset = worklog_queryset.filter(project__in=projects)
 
-        return self.paginate(
-            order_by=request.GET.get("order_by", "-created_at"),
+        return paginate_mixed_user_activity(
             request=request,
-            queryset=queryset,
-            on_results=lambda issue_activities: IssueActivitySerializer(issue_activities, many=True).data,
+            paginator=self,
+            issue_queryset=issue_queryset,
+            worklog_queryset=worklog_queryset,
         )
 
 

@@ -133,3 +133,9 @@ from .draft import (
     DraftIssueSerializer,
     DraftIssueDetailSerializer,
 )
+from .user_activity import (
+    ISSUE_ACTIVITY_KIND,
+    WORKLOG_ACTIVITY_KIND,
+    UserActivityIssueSerializer,
+    UserActivityWorklogSerializer,
+)

@@ -34,6 +34,11 @@ from plane.app.permissions import (
 # Module imports
 from plane.app.serializers import WorkSpaceSerializer, WorkspaceThemeSerializer
 from plane.app.views.base import BaseAPIView, BaseViewSet
+from plane.app.user_activity import (
+    ISSUE_ACTIVITY_KIND,
+    WORKLOG_ACTIVITY_KIND,
+    get_mixed_user_activity_items,
+)
 from plane.db.models import (
     Issue,
     IssueActivity,
@@ -41,6 +46,7 @@ from plane.db.models import (
     WorkspaceMember,
     WorkspaceTheme,
     Profile,
+    Worklog,
 )
 from plane.app.permissions import ROLE, allow_permission
 from plane.utils.constants import RESTRICTED_WORKSPACE_SLUGS
@@ -380,18 +386,31 @@ class ExportWorkspaceUserActivityEndpoint(BaseAPIView):
         if not request.data.get("date"):
             return Response({"error": "Date is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        user_activities = IssueActivity.objects.filter(
+        issue_activities = IssueActivity.objects.filter(
             ~Q(field__in=["comment", "vote", "reaction", "draft"]),
             workspace__slug=slug,
             created_at__date=request.data.get("date"),
             project__project_projectmember__member=request.user,
             project__project_projectmember__is_active=True,
+            project__archived_at__isnull=True,
             actor_id=user_id,
-        ).select_related("actor", "workspace", "issue", "project")[:10000]
+        ).select_related("actor", "workspace", "issue", "project")
+        worklogs = Worklog.objects.filter(
+            workspace__slug=slug,
+            created_at__date=request.data.get("date"),
+            project__project_projectmember__member=request.user,
+            project__project_projectmember__is_active=True,
+            project__archived_at__isnull=True,
+            user_id=user_id,
+            deleted_at__isnull=True,
+        ).select_related("user", "workspace", "issue", "project")
+        user_activities = get_mixed_user_activity_items(issue_activities, worklogs, limit=10000)
 
         header = [
+            "Entry type",
             "Actor name",
             "Issue ID",
+            "Issue title",
             "Project",
             "Created at",
             "Updated at",
@@ -399,21 +418,67 @@ class ExportWorkspaceUserActivityEndpoint(BaseAPIView):
             "Field",
             "Old value",
             "New value",
+            "Worklog duration",
+            "Worklog source",
+            "Worklog logged at",
+            "Worklog description",
         ]
-        rows = [
-            (
-                activity.actor.display_name,
-                f"{activity.project.identifier} - {activity.issue.sequence_id if activity.issue else ''}",
-                activity.project.name,
-                activity.created_at,
-                activity.updated_at,
-                activity.verb,
-                activity.field,
-                activity.old_value,
-                activity.new_value,
-            )
-            for activity in user_activities
-        ]
+        rows = []
+        for activity in user_activities:
+            issue_detail = activity.get("issue_detail")
+            issue_identifier = ""
+            issue_title = ""
+            if issue_detail is not None:
+                issue_identifier = (
+                    f"{activity['project_detail']['identifier']} - {issue_detail['sequence_id']}"
+                    if issue_detail.get("sequence_id") is not None
+                    else activity["project_detail"]["identifier"]
+                )
+                issue_title = issue_detail.get("name") or ""
+
+            if activity["activity_kind"] == ISSUE_ACTIVITY_KIND:
+                payload = activity["payload"]
+                rows.append(
+                    (
+                        "Issue activity",
+                        activity["actor_detail"]["display_name"] if activity.get("actor_detail") else "",
+                        issue_identifier,
+                        issue_title,
+                        activity["project_detail"]["name"],
+                        activity["created_at"],
+                        activity["updated_at"],
+                        payload.get("verb", ""),
+                        payload.get("field", ""),
+                        payload.get("old_value", ""),
+                        payload.get("new_value", ""),
+                        "",
+                        "",
+                        "",
+                        "",
+                    )
+                )
+            elif activity["activity_kind"] == WORKLOG_ACTIVITY_KIND:
+                payload = activity["payload"]
+                action = "timer_worklog_created" if payload.get("source") == "timer" else "manual_worklog_created"
+                rows.append(
+                    (
+                        "Worklog",
+                        activity["actor_detail"]["display_name"] if activity.get("actor_detail") else "",
+                        issue_identifier,
+                        issue_title,
+                        activity["project_detail"]["name"],
+                        activity["created_at"],
+                        activity["updated_at"],
+                        action,
+                        "",
+                        "",
+                        "",
+                        payload.get("display_duration", ""),
+                        payload.get("source", ""),
+                        payload.get("logged_at", ""),
+                        payload.get("description", ""),
+                    )
+                )
         csv_buffer = self.generate_csv_from_rows([header] + rows)
         response = HttpResponse(csv_buffer.getvalue(), content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="workspace-user-activity.csv"'
