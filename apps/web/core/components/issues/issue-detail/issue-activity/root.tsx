@@ -4,12 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import uniq from "lodash-es/uniq";
 import { observer } from "mobx-react";
 // plane package imports
 import type { TActivityFilters } from "@plane/constants";
-import { E_SORT_ORDER, defaultActivityFilters, EUserPermissions } from "@plane/constants";
+import { EActivityFilterType, E_SORT_ORDER, defaultActivityFilters, EUserPermissions } from "@plane/constants";
 import { useLocalStorage } from "@plane/hooks";
 // i18n
 import { useTranslation } from "@plane/i18n";
@@ -85,6 +85,23 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === E_SORT_ORDER.ASC ? E_SORT_ORDER.DESC : E_SORT_ORDER.ASC);
   };
+
+  useEffect(() => {
+    if (!selectedFilters || selectedFilters.includes(EActivityFilterType.WORKLOG)) return;
+
+    const isLegacyDefault =
+      selectedFilters.length === 4 &&
+      [
+        EActivityFilterType.ACTIVITY,
+        EActivityFilterType.COMMENT,
+        EActivityFilterType.STATE,
+        EActivityFilterType.ASSIGNEE,
+      ].every((filter) => selectedFilters.includes(filter));
+
+    if (isLegacyDefault) {
+      setFilterValue([...selectedFilters, EActivityFilterType.WORKLOG]);
+    }
+  }, [selectedFilters, setFilterValue]);
 
   // helper hooks
   const activityOperations = useWorkItemCommentOperations(workspaceSlug, projectId, issueId);

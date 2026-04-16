@@ -11,6 +11,7 @@ import { computedFn } from "mobx-utils";
 import type { E_SORT_ORDER } from "@plane/constants";
 import { EActivityFilterType } from "@plane/constants";
 import type {
+  IWorklog,
   TIssueActivityComment,
   TIssueActivity,
   TIssueActivityMap,
@@ -94,8 +95,10 @@ export class IssueActivityStore implements IIssueActivityStore {
 
     const activities = this.getActivitiesByIssueId(issueId);
     const comments = currentStore.comment.getCommentsByIssueId(issueId);
+    const worklogs =
+      this.serviceType === EIssueServiceType.EPICS ? [] : currentStore.worklog.getWorklogsByIssueId(issueId);
 
-    if (!activities || !comments) return undefined;
+    if (!activities || !comments || worklogs === undefined) return undefined;
 
     activities.forEach((activityId) => {
       const activity = this.getActivityById(activityId);
@@ -122,6 +125,16 @@ export class IssueActivityStore implements IIssueActivityStore {
         id: comment.id,
         activity_type: EActivityFilterType.COMMENT,
         created_at: comment.created_at,
+      });
+    });
+
+    worklogs.forEach((worklogId) => {
+      const worklog = currentStore.worklog.getWorklogById(worklogId) as IWorklog | undefined;
+      if (!worklog || worklog.deleted_at) return;
+      activityComments.push({
+        id: worklog.id,
+        activity_type: EActivityFilterType.WORKLOG,
+        created_at: worklog.created_at,
       });
     });
 
@@ -160,9 +173,9 @@ export class IssueActivityStore implements IIssueActivityStore {
       const activityIds = activities.map((activity) => activity.id);
 
       runInAction(() => {
-        update(this.activities, issueId, (currentActivityIds) => {
-          if (!currentActivityIds) return activityIds;
-          return uniq(concat(currentActivityIds, activityIds));
+        update(this.activities, issueId, (storedActivityIds) => {
+          if (!storedActivityIds) return activityIds;
+          return uniq(concat(storedActivityIds, activityIds));
         });
         activities.forEach((activity) => {
           set(this.activityMap, activity.id, activity);

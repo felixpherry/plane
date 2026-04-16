@@ -23,6 +23,12 @@ import type {
   IIssueActivityStoreActions,
   TActivityLoader,
 } from "@/plane-web/store/issue/issue-details/activity.store";
+import { IssueWorklogStore } from "@/plane-web/store/issue/issue-details/worklog.store";
+import type {
+  IIssueWorklogStore,
+  IIssueWorklogStoreActions,
+  TWorklogLoader,
+} from "@/plane-web/store/issue/issue-details/worklog.store";
 import type { TIssueRelationTypes } from "@/plane-web/types";
 import type { IIssueRootStore } from "../root.store";
 import { IssueAttachmentStore } from "./attachment.store";
@@ -77,6 +83,7 @@ export interface IIssueDetail
     IIssueAttachmentStoreActions,
     IIssueRelationStoreActions,
     IIssueActivityStoreActions,
+    IIssueWorklogStoreActions,
     IIssueCommentStoreActions,
     IIssueCommentReactionStoreActions {
   // observables
@@ -123,6 +130,7 @@ export interface IIssueDetail
   reaction: IIssueReactionStore;
   attachment: IIssueAttachmentStore;
   activity: IIssueActivityStore;
+  worklog: IIssueWorklogStore;
   comment: IIssueCommentStore;
   commentReaction: IIssueCommentReactionStore;
   subIssues: IIssueSubIssuesStore;
@@ -173,6 +181,7 @@ export abstract class IssueDetail implements IIssueDetail {
   subscription: IIssueSubscriptionStore;
   relation: IIssueRelationStore;
   activity: IIssueActivityStore;
+  worklog: IIssueWorklogStore;
   comment: IIssueCommentStore;
   commentReaction: IIssueCommentReactionStore;
 
@@ -223,6 +232,7 @@ export abstract class IssueDetail implements IIssueDetail {
     this.reaction = new IssueReactionStore(this, serviceType);
     this.attachment = new IssueAttachmentStore(rootStore, serviceType);
     this.activity = new IssueActivityStore(rootStore.rootStore, serviceType);
+    this.worklog = new IssueWorklogStore(serviceType);
     this.comment = new IssueCommentStore(this, serviceType);
     this.commentReaction = new IssueCommentReactionStore(this);
     this.subIssues = new IssueSubIssuesStore(this, serviceType);
@@ -408,6 +418,23 @@ export abstract class IssueDetail implements IIssueDetail {
   // activity
   fetchActivities = async (workspaceSlug: string, projectId: string, issueId: string, loaderType?: TActivityLoader) =>
     this.activity.fetchActivities(workspaceSlug, projectId, issueId, loaderType);
+  fetchWorklogs = async (workspaceSlug: string, projectId: string, issueId: string, loaderType?: TWorklogLoader) =>
+    this.worklog.fetchWorklogs(workspaceSlug, projectId, issueId, loaderType);
+  createWorklog = async (
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    data: Parameters<IIssueWorklogStoreActions["createWorklog"]>[3]
+  ) => this.worklog.createWorklog(workspaceSlug, projectId, issueId, data);
+  updateWorklog = async (
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    worklogId: string,
+    data: Parameters<IIssueWorklogStoreActions["updateWorklog"]>[4]
+  ) => this.worklog.updateWorklog(workspaceSlug, projectId, issueId, worklogId, data);
+  removeWorklog = async (workspaceSlug: string, projectId: string, issueId: string, worklogId: string) =>
+    this.worklog.removeWorklog(workspaceSlug, projectId, issueId, worklogId);
 
   // comment
   fetchComments = async (workspaceSlug: string, projectId: string, issueId: string, loaderType?: TCommentLoader) =>

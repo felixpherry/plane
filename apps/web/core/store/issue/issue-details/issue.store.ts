@@ -127,6 +127,10 @@ export class IssueStore implements IIssueStore {
     // fetch issue activity
     this.rootIssueDetailStore.activity.fetchActivities(workspaceSlug, projectId, issueId);
 
+    if (this.serviceType === EIssueServiceType.ISSUES) {
+      this.rootIssueDetailStore.worklog.fetchWorklogs(workspaceSlug, projectId, issueId);
+    }
+
     // fetch issue comments
     this.rootIssueDetailStore.comment.fetchComments(workspaceSlug, projectId, issueId);
 
@@ -322,6 +326,10 @@ export class IssueStore implements IIssueStore {
 
     // fetch issue activity
     rootWorkItemDetailStore.activity.fetchActivities(workspaceSlug, projectId, issueId);
+
+    if (!issue.is_epic) {
+      rootWorkItemDetailStore.worklog.fetchWorklogs(workspaceSlug, projectId, issueId);
+    }
 
     // fetch issue comments
     rootWorkItemDetailStore.comment.fetchComments(workspaceSlug, projectId, issueId);

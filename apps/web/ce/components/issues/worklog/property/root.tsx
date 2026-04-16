@@ -1,7 +1,7 @@
 /* eslint-disable */
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -11,12 +11,11 @@ import { AlertModalCore } from "@plane/ui";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { PortalWrapper } from "@plane/propel/portal";
 import type { IWorklog } from "@plane/types";
-import { WorklogService } from "@plane/services";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
+import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { useGlobalWorklogTimer } from "@/plane-web/components/issues/worklog/timer";
-
-const worklogService = new WorklogService();
+import { formatWorklogDateTime, formatWorklogDuration, getWorklogEndTime, getWorklogSourceLabel } from "../helpers";
 
 type TIssueWorklogProperty = {
   workspaceSlug: string;
@@ -27,44 +26,6 @@ type TIssueWorklogProperty = {
 };
 
 type TView = "idle" | "manual-form";
-
-function formatDuration(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (h === 0) return `${m}m`;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
-}
-
-function formatSeconds(totalSeconds: number): string {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
-
-function formatDateTime(value: string | Date): string {
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-
-  return dateTimeFormatter.format(date);
-}
-
-function getWorklogEndTime(worklog: IWorklog): Date | null {
-  const startTime = new Date(worklog.logged_at);
-  if (Number.isNaN(startTime.getTime())) {
-    return null;
-  }
-
-  return new Date(startTime.getTime() + worklog.duration * 60 * 1000);
-}
 
 function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message.trim().length > 0) {
@@ -94,63 +55,58 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
   const { data: currentUser } = useUser();
   const { allowPermissions } = useUserPermissions();
   const {
-    activeTimer,
-    activeIssue,
-    isMutating,
-    lastStoppedWorklog,
-    startTimer,
-    stopTimer,
-    discardTimer,
-    isActiveForIssue,
-  } = useGlobalWorklogTimer();
+    worklog: { loader, getWorklogsByIssueId, getWorklogById, getTotalDurationByIssueId },
+    fetchWorklogs,
+    createWorklog,
+    updateWorklog,
+    removeWorklog,
+  } = useIssueDetail();
+  const { activeTimer, activeIssue, isMutating, lastStoppedWorklog, startTimer, stopTimer, isActiveForIssue } =
+    useGlobalWorklogTimer();
 
-  // State
   const [view, setView] = useState<TView>("idle");
-  const [worklogs, setWorklogs] = useState<IWorklog[]>([]);
-  const [totalDuration, setTotalDuration] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Manual form state
   const [hours, setHours] = useState("");
   const [minutes, setMinutes] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editHours, setEditHours] = useState("");
   const [editMinutes, setEditMinutes] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [deleteWorklog, setDeleteWorklog] = useState<IWorklog | null>(null);
-  const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug, projectId);
 
-  const fetchWorklogs = useCallback(async () => {
-    if (!workspaceSlug || !projectId || !issueId) return;
-    try {
-      setIsLoading(true);
-      const data = await worklogService.listWorklogs(workspaceSlug, projectId, issueId);
-      setWorklogs(data.results || []);
-      setTotalDuration(data.total_duration || 0);
-    } catch (error) {
+  const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug, projectId);
+  const worklogIds = getWorklogsByIssueId(issueId);
+  const worklogs = useMemo(
+    () => (worklogIds ? (worklogIds.map((worklogId) => getWorklogById(worklogId)).filter(Boolean) as IWorklog[]) : []),
+    [getWorklogById, worklogIds]
+  );
+  const totalDuration = getTotalDurationByIssueId(issueId) ?? 0;
+  const isLoading = worklogIds === undefined || loader === "fetch";
+
+  useEffect(() => {
+    if (!workspaceSlug || !projectId || !issueId || worklogIds !== undefined) return;
+
+    fetchWorklogs(workspaceSlug, projectId, issueId).catch((error: unknown) => {
       setToast({
         type: TOAST_TYPE.ERROR,
         title: t("toast.error"),
-        message: getErrorMessage(error, "Failed to fetch worklogs:"),
+        message: getErrorMessage(error, "Failed to fetch worklogs."),
       });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [workspaceSlug, projectId, issueId]);
+    });
+  }, [fetchWorklogs, issueId, projectId, t, worklogIds, workspaceSlug]);
 
   useEffect(() => {
-    void fetchWorklogs();
-  }, [fetchWorklogs]);
+    if (lastStoppedWorklog?.issue !== issueId) return;
 
-  useEffect(() => {
-    if (lastStoppedWorklog?.issue === issueId) {
-      void fetchWorklogs();
-    }
-  }, [fetchWorklogs, issueId, lastStoppedWorklog]);
+    fetchWorklogs(workspaceSlug, projectId, issueId, "mutate").catch((error: unknown) => {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: getErrorMessage(error, "Failed to refresh worklogs."),
+      });
+    });
+  }, [fetchWorklogs, issueId, lastStoppedWorklog, projectId, t, workspaceSlug]);
 
   const isTimerActiveForCurrentIssue = isActiveForIssue(issueId);
   const hasAnotherActiveTimer = !!activeTimer && !isTimerActiveForCurrentIssue;
@@ -181,22 +137,21 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
   };
 
   const handleManualSubmit = async () => {
-    const h = parseInt(hours) || 0;
-    const m = parseInt(minutes) || 0;
-    if (h === 0 && m === 0) return;
+    const parsedHours = parseInt(hours) || 0;
+    const parsedMinutes = parseInt(minutes) || 0;
+    if (parsedHours === 0 && parsedMinutes === 0) return;
 
     setIsSubmitting(true);
     try {
-      await worklogService.createWorklog(workspaceSlug, projectId, issueId, {
-        hours: h,
-        minutes: m,
+      await createWorklog(workspaceSlug, projectId, issueId, {
+        hours: parsedHours,
+        minutes: parsedMinutes,
         description,
       });
       setHours("");
       setMinutes("");
       setDescription("");
       setView("idle");
-      await fetchWorklogs();
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: t("toast.success"),
@@ -214,18 +169,17 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
   };
 
   const handleEditSubmit = async (worklogId: string) => {
-    const h = parseInt(editHours) || 0;
-    const m = parseInt(editMinutes) || 0;
-    if (h === 0 && m === 0) return;
+    const parsedHours = parseInt(editHours) || 0;
+    const parsedMinutes = parseInt(editMinutes) || 0;
+    if (parsedHours === 0 && parsedMinutes === 0) return;
 
     try {
-      await worklogService.updateWorklog(workspaceSlug, projectId, issueId, worklogId, {
-        hours: h,
-        minutes: m,
+      await updateWorklog(workspaceSlug, projectId, issueId, worklogId, {
+        hours: parsedHours,
+        minutes: parsedMinutes,
         description: editDescription,
       });
       setEditingId(null);
-      await fetchWorklogs();
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: t("toast.success"),
@@ -242,9 +196,8 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
 
   const handleDelete = async (worklogId: string) => {
     try {
-      await worklogService.deleteWorklog(workspaceSlug, projectId, issueId, worklogId);
+      await removeWorklog(workspaceSlug, projectId, issueId, worklogId);
       setDeleteWorklog(null);
-      await fetchWorklogs();
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: t("toast.success"),
@@ -299,21 +252,21 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
       tdRender: (worklog: IWorklog) => (
         <div className="flex items-center gap-1.5">
           {worklog.source === "timer" && <Timer className="text-custom-text-400 h-3 w-3" />}
-          <span className="capitalize">{worklog.source === "timer" ? "Timer entry" : "Manual entry"}</span>
+          <span className="capitalize">{getWorklogSourceLabel(worklog.source)}</span>
         </div>
       ),
     },
     {
       key: "start-time",
       content: "Start time",
-      tdRender: (worklog: IWorklog) => formatDateTime(worklog.logged_at),
+      tdRender: (worklog: IWorklog) => formatWorklogDateTime(worklog.logged_at),
     },
     {
       key: "end-time",
       content: "End time",
       tdRender: (worklog: IWorklog) => {
         const endTime = getWorklogEndTime(worklog);
-        return endTime ? formatDateTime(endTime) : "-";
+        return endTime ? formatWorklogDateTime(endTime) : "-";
       },
     },
     {
@@ -355,7 +308,7 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
           );
         }
 
-        return worklog.display_duration || formatDuration(worklog.duration);
+        return worklog.display_duration || formatWorklogDuration(worklog.duration);
       },
     },
     {
@@ -385,8 +338,6 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
       key: "actions",
       content: "Actions",
       tdRender: (worklog: IWorklog) => {
-        // if (disabled) return null;
-
         if (editingId === worklog.id) {
           return (
             <div className="flex items-center justify-end gap-2">
@@ -428,14 +379,14 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
 
   return (
     <>
-      {/* Total tracked time */}
       <SidebarPropertyListItem icon={Clock} label="Time tracked">
         <div className="flex h-7.5 w-full items-center justify-between">
-          <span className="text-body-xs-medium">{totalDuration > 0 ? formatDuration(totalDuration) : "None"}</span>
+          <span className="text-body-xs-medium">
+            {totalDuration > 0 ? formatWorklogDuration(totalDuration) : "None"}
+          </span>
         </div>
       </SidebarPropertyListItem>
 
-      {/* Action buttons */}
       {view === "idle" && !disabled && (
         <div className="flex items-center gap-2">
           {canUseTimer && !isTimerActiveForCurrentIssue && (
@@ -482,7 +433,6 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
         </div>
       )}
 
-      {/* Manual log form */}
       {view === "manual-form" && (
         <div className="rounded-md border-[0.5px] border-subtle bg-surface-2 p-3">
           <div className="flex items-center gap-2">
@@ -552,7 +502,6 @@ export const IssueWorklogProperty = observer(function IssueWorklogProperty(props
         </div>
       )}
 
-      {/* Worklog history */}
       {worklogs.length > 0 && (
         <div className="mt-6 flex flex-col gap-4">
           <div className="text-h5-medium text-primary">Worklog History</div>
