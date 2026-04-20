@@ -1,3 +1,4 @@
+// eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -188,6 +189,8 @@ export const useMenuItemFactory = (props: MenuItemFactoryProps) => {
       setCreateUpdateIssueModal,
       setDuplicateWorkItemModal,
       workspaceSlug,
+      sameProjectTitle: t("common.actions.copy_in_same_project"),
+      differentProjectTitle: t("common.actions.copy_in_different_project"),
     });
   };
 

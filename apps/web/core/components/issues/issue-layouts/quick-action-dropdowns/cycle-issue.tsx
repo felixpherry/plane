@@ -140,7 +140,7 @@ export const CycleIssueQuickActions = observer(function CycleIssueQuickActions(p
       />
       {issue.project_id && workspaceSlug && (
         <DuplicateWorkItemModal
-          workItemId={issue.id}
+          issue={issue}
           isOpen={duplicateWorkItemModal}
           onClose={() => setDuplicateWorkItemModal(false)}
           workspaceSlug={workspaceSlug.toString()}

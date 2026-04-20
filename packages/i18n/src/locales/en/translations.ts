@@ -659,6 +659,8 @@ export default {
     actions: {
       edit: "Edit",
       make_a_copy: "Make a copy",
+      copy_in_same_project: "Copy in same project",
+      copy_in_different_project: "Copy in different project",
       open_in_new_tab: "Open in new tab",
       copy_link: "Copy link",
       archive: "Archive",

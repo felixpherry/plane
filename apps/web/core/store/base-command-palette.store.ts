@@ -9,7 +9,7 @@ import { computedFn } from "mobx-utils";
 // plane imports
 import type { TCreateModalStoreTypes, TCreatePageModal } from "@plane/constants";
 import { DEFAULT_CREATE_PAGE_MODAL_DATA, EPageAccess } from "@plane/constants";
-import type { TProfileSettingsTabs } from "@plane/types";
+import type { TIssue, TProfileSettingsTabs } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 // lib
 import { store } from "@/lib/store-context";
@@ -31,6 +31,7 @@ export interface IBaseCommandPaletteStore {
   isBulkDeleteIssueModalOpen: boolean;
   createIssueStoreType: TCreateModalStoreTypes;
   createWorkItemAllowedProjectIds: string[] | undefined;
+  createWorkItemModalData: Partial<TIssue> | undefined;
   profileSettingsModal: {
     activeTab: TProfileSettingsTabs | null;
     isOpen: boolean;
@@ -43,7 +44,12 @@ export interface IBaseCommandPaletteStore {
   toggleCreateCycleModal: (value?: boolean) => void;
   toggleCreateViewModal: (value?: boolean) => void;
   toggleCreatePageModal: (value?: TCreatePageModal) => void;
-  toggleCreateIssueModal: (value?: boolean, storeType?: TCreateModalStoreTypes, allowedProjectIds?: string[]) => void;
+  toggleCreateIssueModal: (
+    value?: boolean,
+    storeType?: TCreateModalStoreTypes,
+    allowedProjectIds?: string[],
+    modalData?: Partial<TIssue>
+  ) => void;
   toggleCreateModuleModal: (value?: boolean) => void;
   toggleDeleteIssueModal: (value?: boolean) => void;
   toggleBulkDeleteIssueModal: (value?: boolean) => void;
@@ -64,6 +70,7 @@ export abstract class BaseCommandPaletteStore implements IBaseCommandPaletteStor
   createPageModal: TCreatePageModal = DEFAULT_CREATE_PAGE_MODAL_DATA;
   createIssueStoreType: TCreateModalStoreTypes = EIssuesStoreType.PROJECT;
   createWorkItemAllowedProjectIds: IBaseCommandPaletteStore["createWorkItemAllowedProjectIds"] = undefined;
+  createWorkItemModalData: IBaseCommandPaletteStore["createWorkItemModalData"] = undefined;
   profileSettingsModal: IBaseCommandPaletteStore["profileSettingsModal"] = {
     activeTab: "general",
     isOpen: false,
@@ -84,6 +91,7 @@ export abstract class BaseCommandPaletteStore implements IBaseCommandPaletteStor
       createPageModal: observable,
       createIssueStoreType: observable,
       createWorkItemAllowedProjectIds: observable,
+      createWorkItemModalData: observable,
       profileSettingsModal: observable,
       allStickiesModal: observable,
       projectListOpenMap: observable,
@@ -197,15 +205,22 @@ export abstract class BaseCommandPaletteStore implements IBaseCommandPaletteStor
    * @param storeType
    * @returns
    */
-  toggleCreateIssueModal = (value?: boolean, storeType?: TCreateModalStoreTypes, allowedProjectIds?: string[]) => {
+  toggleCreateIssueModal = (
+    value?: boolean,
+    storeType?: TCreateModalStoreTypes,
+    allowedProjectIds?: string[],
+    modalData?: Partial<TIssue>
+  ) => {
     if (value !== undefined) {
       this.isCreateIssueModalOpen = value;
       this.createIssueStoreType = storeType || EIssuesStoreType.PROJECT;
       this.createWorkItemAllowedProjectIds = allowedProjectIds ?? undefined;
+      this.createWorkItemModalData = modalData ?? undefined;
     } else {
       this.isCreateIssueModalOpen = !this.isCreateIssueModalOpen;
       this.createIssueStoreType = EIssuesStoreType.PROJECT;
       this.createWorkItemAllowedProjectIds = undefined;
+      this.createWorkItemModalData = undefined;
     }
   };
 

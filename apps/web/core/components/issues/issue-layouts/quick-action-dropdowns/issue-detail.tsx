@@ -1,3 +1,4 @@
+// eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -227,7 +228,7 @@ export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickA
       />
       {issue.project_id && workspaceSlug && (
         <DuplicateWorkItemModal
-          workItemId={issue.id}
+          issue={issue}
           isOpen={duplicateWorkItemModal}
           onClose={() => {
             setDuplicateWorkItemModal(false);

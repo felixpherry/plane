@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type { FC } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
@@ -50,16 +49,17 @@ export const WorkItemLevelModals = observer(function WorkItemLevelModals(props: 
     isBulkDeleteIssueModalOpen,
     toggleBulkDeleteIssueModal,
     createWorkItemAllowedProjectIds,
+    createWorkItemModalData,
   } = useCommandPalette();
   // derived values
   const { fetchSubIssues: fetchSubWorkItems } = useIssueDetail();
   const { fetchSubIssues: fetchEpicSubWorkItems } = useIssueDetail(EIssueServiceType.EPICS);
 
-  const handleDeleteIssue = async (workspaceSlug: string, projectId: string, issueId: string) => {
+  const handleDeleteIssue = async (workspaceSlugValue: string, projectId: string, issueId: string) => {
     try {
       const isEpic = workItemDetails?.is_epic;
       const deleteAction = isEpic ? removeEpic : removeWorkItem;
-      const redirectPath = `/${workspaceSlug}/projects/${projectId}/${isEpic ? "epics" : "issues"}`;
+      const redirectPath = `/${workspaceSlugValue}/projects/${projectId}/${isEpic ? "epics" : "issues"}`;
 
       await deleteAction(projectId, issueId);
       router.push(redirectPath);
@@ -86,7 +86,7 @@ export const WorkItemLevelModals = observer(function WorkItemLevelModals(props: 
       <CreateUpdateIssueModal
         isOpen={isCreateIssueModalOpen}
         onClose={() => toggleCreateIssueModal(false)}
-        data={getCreateIssueModalData()}
+        data={createWorkItemModalData ?? getCreateIssueModalData()}
         onSubmit={handleCreateIssueSubmit}
         allowedProjectIds={createWorkItemAllowedProjectIds}
       />

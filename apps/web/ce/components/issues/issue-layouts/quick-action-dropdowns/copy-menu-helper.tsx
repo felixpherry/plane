@@ -19,10 +19,28 @@ export interface CopyMenuHelperProps {
   setCreateUpdateIssueModal: (open: boolean) => void;
   setDuplicateWorkItemModal?: (open: boolean) => void;
   workspaceSlug?: string;
+  sameProjectTitle: string;
+  differentProjectTitle: string;
 }
 
 export const createCopyMenuWithDuplication = (props: CopyMenuHelperProps): TContextMenuItem => {
-  const { baseItem } = props;
+  const { baseItem, setCreateUpdateIssueModal, setDuplicateWorkItemModal, sameProjectTitle, differentProjectTitle } =
+    props;
 
-  return baseItem;
+  return {
+    ...baseItem,
+    nestedMenuItems: [
+      {
+        key: "copy-in-same-project",
+        title: sameProjectTitle,
+        action: () => setCreateUpdateIssueModal(true),
+      },
+      {
+        key: "copy-in-different-project",
+        title: differentProjectTitle,
+        action: () => setDuplicateWorkItemModal?.(true),
+        disabled: !setDuplicateWorkItemModal,
+      },
+    ],
+  };
 };
