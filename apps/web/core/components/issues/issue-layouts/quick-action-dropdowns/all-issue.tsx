@@ -17,8 +17,6 @@ import { cn } from "@plane/utils";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
-// plane-web components
-import { DuplicateWorkItemModal } from "@/plane-web/components/issues/issue-layouts/quick-action-dropdowns";
 // helper
 import { ArchiveIssueModal } from "../../archive-issue-modal";
 import { DeleteIssueModal } from "../../delete-issue-modal";
@@ -44,7 +42,6 @@ export const AllIssueQuickActions = observer(function AllIssueQuickActions(props
   const [issueToEdit, setIssueToEdit] = useState<TIssue | undefined>(undefined);
   const [deleteIssueModal, setDeleteIssueModal] = useState(false);
   const [archiveIssueModal, setArchiveIssueModal] = useState(false);
-  const [duplicateWorkItemModal, setDuplicateWorkItemModal] = useState(false);
   // router
   const { workspaceSlug } = useParams();
   const { getStateById } = useProjectState();
@@ -80,7 +77,6 @@ export const AllIssueQuickActions = observer(function AllIssueQuickActions(props
     setCreateUpdateIssueModal,
     setDeleteIssueModal,
     setArchiveIssueModal,
-    setDuplicateWorkItemModal,
     handleDelete,
     handleUpdate,
     handleArchive,
@@ -90,8 +86,18 @@ export const AllIssueQuickActions = observer(function AllIssueQuickActions(props
   const MENU_ITEMS = useAllIssueMenuItems(menuItemProps);
 
   const CONTEXT_MENU_ITEMS = MENU_ITEMS.map(function CONTEXT_MENU_ITEMS(item) {
+    const resolvedNestedItems =
+      item.key === "make-a-copy" && item.nestedMenuItems
+        ? item.nestedMenuItems.flatMap((nestedItem) =>
+            nestedItem.key === "copy-in-different-project" && nestedItem.nestedMenuItems
+              ? nestedItem.nestedMenuItems
+              : [nestedItem]
+          )
+        : item.nestedMenuItems;
+
     return {
       ...item,
+      nestedMenuItems: resolvedNestedItems,
       onClick: () => {
         item.action();
       },
@@ -125,15 +131,6 @@ export const AllIssueQuickActions = observer(function AllIssueQuickActions(props
         }}
         storeType={EIssuesStoreType.GLOBAL}
       />
-      {issue.project_id && workspaceSlug && (
-        <DuplicateWorkItemModal
-          issue={issue}
-          isOpen={duplicateWorkItemModal}
-          onClose={() => setDuplicateWorkItemModal(false)}
-          workspaceSlug={workspaceSlug.toString()}
-          projectId={issue.project_id}
-        />
-      )}
 
       <ContextMenu parentRef={parentRef} items={CONTEXT_MENU_ITEMS} />
       <CustomMenu
@@ -154,6 +151,7 @@ export const AllIssueQuickActions = observer(function AllIssueQuickActions(props
             return (
               <CustomMenu.SubMenu
                 key={item.key}
+                placement="left-start"
                 trigger={
                   <div className="flex items-center gap-2">
                     {item.icon && <item.icon className={cn("h-3 w-3", item.iconClassName)} />}
@@ -178,36 +176,101 @@ export const AllIssueQuickActions = observer(function AllIssueQuickActions(props
                   item.className
                 )}
               >
-                {item.nestedMenuItems.map((nestedItem) => (
-                  <CustomMenu.MenuItem
-                    key={nestedItem.key}
-                    onClick={() => {
-                      nestedItem.action();
-                    }}
-                    className={cn(
-                      "flex items-center gap-2",
-                      {
-                        "text-placeholder": nestedItem.disabled,
-                      },
-                      nestedItem.className
-                    )}
-                    disabled={nestedItem.disabled}
-                  >
-                    {nestedItem.icon && <nestedItem.icon className={cn("h-3 w-3", nestedItem.iconClassName)} />}
-                    <div>
-                      <h5>{nestedItem.title}</h5>
-                      {nestedItem.description && (
-                        <p
-                          className={cn("whitespace-pre-line text-tertiary", {
+                {item.nestedMenuItems.map((nestedItem) => {
+                  if (nestedItem.nestedMenuItems && nestedItem.nestedMenuItems.length > 0) {
+                    return (
+                      <CustomMenu.SubMenu
+                        key={nestedItem.key}
+                        placement="left-start"
+                        trigger={
+                          <div className="flex items-center gap-2">
+                            {nestedItem.icon && <nestedItem.icon className={cn("h-3 w-3", nestedItem.iconClassName)} />}
+                            <h5>{nestedItem.title}</h5>
+                            {nestedItem.description && (
+                              <p
+                                className={cn("whitespace-pre-line text-tertiary", {
+                                  "text-placeholder": nestedItem.disabled,
+                                })}
+                              >
+                                {nestedItem.description}
+                              </p>
+                            )}
+                          </div>
+                        }
+                        disabled={nestedItem.disabled}
+                        className={cn(
+                          "flex items-center gap-2",
+                          {
                             "text-placeholder": nestedItem.disabled,
-                          })}
-                        >
-                          {nestedItem.description}
-                        </p>
+                          },
+                          nestedItem.className
+                        )}
+                      >
+                        {nestedItem.nestedMenuItems.map((childItem) => (
+                          <CustomMenu.MenuItem
+                            key={childItem.key}
+                            onClick={() => {
+                              childItem.action();
+                            }}
+                            className={cn(
+                              "flex items-center gap-2",
+                              {
+                                "text-placeholder": childItem.disabled,
+                              },
+                              childItem.className
+                            )}
+                            disabled={childItem.disabled}
+                          >
+                            {childItem.icon && <childItem.icon className={cn("h-3 w-3", childItem.iconClassName)} />}
+                            <div>
+                              <h5>{childItem.title}</h5>
+                              {childItem.description && (
+                                <p
+                                  className={cn("whitespace-pre-line text-tertiary", {
+                                    "text-placeholder": childItem.disabled,
+                                  })}
+                                >
+                                  {childItem.description}
+                                </p>
+                              )}
+                            </div>
+                          </CustomMenu.MenuItem>
+                        ))}
+                      </CustomMenu.SubMenu>
+                    );
+                  }
+
+                  return (
+                    <CustomMenu.MenuItem
+                      key={nestedItem.key}
+                      onClick={() => {
+                        nestedItem.action();
+                      }}
+                      className={cn(
+                        "flex items-center gap-2",
+                        {
+                          "text-placeholder": nestedItem.disabled,
+                        },
+                        nestedItem.className
                       )}
-                    </div>
-                  </CustomMenu.MenuItem>
-                ))}
+                      disabled={nestedItem.disabled}
+                    >
+                      {nestedItem.icon && <nestedItem.icon className={cn("h-3 w-3", nestedItem.iconClassName)} />}
+                      <div>
+                        <h5>{nestedItem.title}</h5>
+                        {nestedItem.description && (
+                          <p
+                            className={cn("whitespace-pre-line text-tertiary", {
+                              "text-placeholder": nestedItem.disabled,
+                            })}
+                          >
+                            {nestedItem.description}
+                          </p>
+                        )}
+                      </div>
+                    </CustomMenu.MenuItem>
+                  );
+                })}
               </CustomMenu.SubMenu>
             );
           }

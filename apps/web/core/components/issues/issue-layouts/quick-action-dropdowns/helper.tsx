@@ -7,15 +7,21 @@
 
 import { useMemo } from "react";
 import { XCircle, ArchiveRestoreIcon } from "lucide-react";
+import { v4 as uuidv4 } from "uuid";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { LinkIcon, CopyIcon, NewTabIcon, EditIcon, ArchiveIcon, TrashIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { EIssuesStoreType, TIssue } from "@plane/types";
+import { EIssuesStoreType, type TIssue } from "@plane/types";
 import type { TContextMenuItem } from "@plane/ui";
 import { copyUrlToClipboard, generateWorkItemLink } from "@plane/utils";
 // types
 import { createCopyMenuWithDuplication } from "@/plane-web/components/issues/issue-layouts/quick-action-dropdowns";
+import { useAppRouter } from "@/hooks/use-app-router";
+import { useCommandPalette } from "@/hooks/store/use-command-palette";
+import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { useProject } from "@/hooks/store/use-project";
+import { useUser } from "@/hooks/store/user";
 
 // Generic helper function to handle optional function calls gracefully
 // Overload for functions without parameters
@@ -68,7 +74,6 @@ export interface MenuItemFactoryProps {
   setCreateUpdateIssueModal: (open: boolean) => void;
   setDeleteIssueModal: (open: boolean) => void;
   setArchiveIssueModal?: (open: boolean) => void;
-  setDuplicateWorkItemModal?: (open: boolean) => void;
   handleRemoveFromView?: () => void;
   handleRestore?: () => Promise<void>;
   // External handlers
@@ -138,9 +143,33 @@ export const useIssueActionHandlers = (props: MenuItemFactoryProps) => {
   };
 };
 
+const prepareDescriptionForCrossProjectCopy = (descriptionHtml: string | undefined): string | undefined => {
+  if (!descriptionHtml) return descriptionHtml;
+
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = descriptionHtml;
+
+  const imageComponents = tempDiv.querySelectorAll("image-component");
+  imageComponents.forEach((element) => {
+    const src = element.getAttribute("src");
+
+    if (!src || src.startsWith("http")) return;
+
+    element.setAttribute("status", "duplicating");
+    element.setAttribute("id", uuidv4());
+  });
+
+  return tempDiv.innerHTML;
+};
+
 export const useMenuItemFactory = (props: MenuItemFactoryProps) => {
   const { t } = useTranslation();
   const actionHandlers = useIssueActionHandlers(props);
+  const router = useAppRouter();
+  const { toggleCreateIssueModal } = useCommandPalette();
+  const { fetchIssue } = useIssueDetail();
+  const { joinedProjectIds, getProjectById } = useProject();
+  const { projectsWithCreatePermissions } = useUser();
 
   const {
     issue,
@@ -155,9 +184,43 @@ export const useMenuItemFactory = (props: MenuItemFactoryProps) => {
     setCreateUpdateIssueModal,
     setDeleteIssueModal,
     setArchiveIssueModal,
-    setDuplicateWorkItemModal,
     handleRemoveFromView,
   } = props;
+
+  const targetProjectOptions = useMemo(
+    () =>
+      joinedProjectIds
+        .filter(
+          (targetProjectId) =>
+            targetProjectId !== issue.project_id &&
+            !!projectsWithCreatePermissions?.[targetProjectId] &&
+            !!getProjectById(targetProjectId)?.name
+        )
+        .map((targetProjectId) => ({
+          id: targetProjectId,
+          name: getProjectById(targetProjectId)?.name ?? "",
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [joinedProjectIds, issue.project_id, projectsWithCreatePermissions, getProjectById]
+  );
+
+  const handleCopyToDifferentProject = async (targetProjectId: string) => {
+    const workspaceSlug = props.workspaceSlug?.toString();
+    if (!workspaceSlug || !issue.project_id) return;
+
+    const sourceIssue = (await fetchIssue(workspaceSlug, issue.project_id, issue.id).catch(() => undefined)) ?? issue;
+
+    toggleCreateIssueModal(true, EIssuesStoreType.PROJECT, [targetProjectId], {
+      name: sourceIssue.name,
+      description_html: prepareDescriptionForCrossProjectCopy(sourceIssue.description_html),
+      priority: sourceIssue.priority,
+      start_date: sourceIssue.start_date,
+      target_date: sourceIssue.target_date,
+      project_id: targetProjectId,
+    });
+
+    router.push(`/${workspaceSlug}/projects/${targetProjectId}/issues`);
+  };
 
   const createEditMenuItem = (customEditAction?: () => void): TContextMenuItem => ({
     key: "edit",
@@ -187,10 +250,16 @@ export const useMenuItemFactory = (props: MenuItemFactoryProps) => {
       baseItem,
       activeLayout,
       setCreateUpdateIssueModal,
-      setDuplicateWorkItemModal,
       workspaceSlug,
       sameProjectTitle: t("common.actions.copy_in_same_project"),
       differentProjectTitle: t("common.actions.copy_in_different_project"),
+      differentProjectMenuItems: targetProjectOptions.map((targetProject) => ({
+        key: `copy-to-project-${targetProject.id}`,
+        title: targetProject.name,
+        action: () => {
+          void handleCopyToDifferentProject(targetProject.id);
+        },
+      })),
     });
   };
 

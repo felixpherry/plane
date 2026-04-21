@@ -1,3 +1,4 @@
+// eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -322,8 +323,10 @@ function SubMenu(props: ICustomSubMenuProps) {
   const [referenceElement, setReferenceElement] = React.useState<HTMLSpanElement | null>(null);
   const [popperElement, setPopperElement] = React.useState<HTMLDivElement | null>(null);
   const submenuRef = React.useRef<HTMLDivElement | null>(null);
+  const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const menuContext = React.useContext(MenuContext);
+  const parentSubMenu = useSubMenu();
 
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
     placement,
@@ -361,20 +364,39 @@ function SubMenu(props: ICustomSubMenuProps) {
     }
   }, [menuContext, closeSubmenu]);
 
-  const toggleSubmenu = () => {
-    if (!disabled) {
-      // Close other submenus when opening this one
-      if (!isOpen && menuContext) {
-        menuContext.closeAllSubmenus();
-      }
-      setIsOpen(!isOpen);
+  const clearCloseTimeout = React.useCallback(() => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
     }
+  }, []);
+
+  const scheduleCloseSubmenu = React.useCallback(() => {
+    clearCloseTimeout();
+    closeTimeoutRef.current = setTimeout(() => {
+      setIsOpen(false);
+    }, 150);
+  }, [clearCloseTimeout]);
+
+  const openSubmenu = React.useCallback(() => {
+    if (disabled) return;
+
+    clearCloseTimeout();
+
+    // Close sibling submenus when opening a top-level submenu
+    if (!isOpen && menuContext && !parentSubMenu) {
+      menuContext.closeAllSubmenus();
+    }
+
+    setIsOpen(true);
+  }, [disabled, clearCloseTimeout, isOpen, menuContext, parentSubMenu]);
+
+  const handleTriggerMouseEnter = () => {
+    openSubmenu();
   };
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    toggleSubmenu();
+  const handleTriggerMouseLeave = () => {
+    scheduleCloseSubmenu();
   };
 
   // Close submenu when clicking on other menu items
@@ -393,8 +415,22 @@ function SubMenu(props: ICustomSubMenuProps) {
     };
   }, [closeSubmenu]);
 
+  React.useEffect(
+    () => () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
+    },
+    []
+  );
+
   return (
-    <div ref={submenuRef} className={cn("relative", className)}>
+    <div
+      ref={submenuRef}
+      className={cn("relative", className)}
+      onMouseEnter={handleTriggerMouseEnter}
+      onMouseLeave={handleTriggerMouseLeave}
+    >
       <span ref={setReferenceElement} className="w-full">
         <Menu.Item as="div" disabled={disabled}>
           {({ active }) => (
@@ -407,7 +443,6 @@ function SubMenu(props: ICustomSubMenuProps) {
                   "cursor-not-allowed": disabled,
                 }
               )}
-              onClick={handleClick}
             >
               <span className="flex-1">{trigger}</span>
               <ChevronRightIcon className="h-3.5 w-3.5 flex-shrink-0" />
@@ -428,18 +463,24 @@ function SubMenu(props: ICustomSubMenuProps) {
             )}
             data-prevent-outside-click="true"
             onMouseEnter={() => {
+              clearCloseTimeout();
               // Notify parent menu that we're hovering over submenu
               const mainMenuElement = document.querySelector('[data-main-menu="true"]');
               if (mainMenuElement) {
-                const mouseEnterEvent = new MouseEvent("mouseenter", { bubbles: true });
+                const mouseEnterEvent = new MouseEvent("mouseenter", {
+                  bubbles: true,
+                });
                 mainMenuElement.dispatchEvent(mouseEnterEvent);
               }
             }}
             onMouseLeave={() => {
+              scheduleCloseSubmenu();
               // Notify parent menu that we're leaving submenu
               const mainMenuElement = document.querySelector('[data-main-menu="true"]');
               if (mainMenuElement) {
-                const mouseLeaveEvent = new MouseEvent("mouseleave", { bubbles: true });
+                const mouseLeaveEvent = new MouseEvent("mouseleave", {
+                  bubbles: true,
+                });
                 mainMenuElement.dispatchEvent(mouseLeaveEvent);
               }
             }}

@@ -17,15 +17,17 @@ export interface CopyMenuHelperProps {
   };
   activeLayout: string;
   setCreateUpdateIssueModal: (open: boolean) => void;
-  setDuplicateWorkItemModal?: (open: boolean) => void;
   workspaceSlug?: string;
   sameProjectTitle: string;
   differentProjectTitle: string;
+  differentProjectMenuItems?: TContextMenuItem[];
 }
 
 export const createCopyMenuWithDuplication = (props: CopyMenuHelperProps): TContextMenuItem => {
-  const { baseItem, setCreateUpdateIssueModal, setDuplicateWorkItemModal, sameProjectTitle, differentProjectTitle } =
+  const { baseItem, setCreateUpdateIssueModal, sameProjectTitle, differentProjectTitle, differentProjectMenuItems } =
     props;
+
+  const resolvedDifferentProjectMenuItems = differentProjectMenuItems ?? [];
 
   return {
     ...baseItem,
@@ -38,8 +40,9 @@ export const createCopyMenuWithDuplication = (props: CopyMenuHelperProps): TCont
       {
         key: "copy-in-different-project",
         title: differentProjectTitle,
-        action: () => setDuplicateWorkItemModal?.(true),
-        disabled: !setDuplicateWorkItemModal,
+        action: () => undefined,
+        disabled: resolvedDifferentProjectMenuItems.length === 0,
+        nestedMenuItems: resolvedDifferentProjectMenuItems.length > 0 ? resolvedDifferentProjectMenuItems : undefined,
       },
     ],
   };
