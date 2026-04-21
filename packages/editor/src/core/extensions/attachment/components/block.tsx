@@ -44,9 +44,8 @@ export function AttachmentBlock(props: Props) {
         <FileText className="size-4" />
       </div>
       <span className="truncate text-13 font-medium text-primary">{fileName}</span>
-      <div className="flex items-center gap-2 text-12 text-disabled">
+      <div className="ml-auto flex items-center gap-2 text-12 text-disabled">
         {fileExtension && <span className="uppercase">{fileExtension}</span>}
-        {fileExtension && formattedSize && <span className="bg-secondary/40 size-1 rounded-full" />}
         {formattedSize && <span>{formattedSize}</span>}
       </div>
     </button>
