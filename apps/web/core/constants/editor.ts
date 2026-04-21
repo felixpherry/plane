@@ -22,6 +22,7 @@ import {
   Heading6,
   Image,
   Italic,
+  Paperclip,
   List,
   ListOrdered,
   ListTodo,
@@ -174,9 +175,19 @@ export const IMAGE_ITEM = {
   extraProps: {},
 } as ToolbarMenuItem<"image">;
 
-const COMPLEX_ITEMS: ToolbarMenuItem<"table" | "image">[] = [
+export const FILE_ITEM = {
+  itemKey: "attachment",
+  renderKey: "attachment",
+  name: "File",
+  icon: Paperclip,
+  editors: ["document"],
+  extraProps: {},
+} as ToolbarMenuItem<"attachment">;
+
+const COMPLEX_ITEMS: ToolbarMenuItem<"table" | "image" | "attachment">[] = [
   { itemKey: "table", renderKey: "table", name: "Table", icon: Table, editors: ["document"] },
   IMAGE_ITEM,
+  FILE_ITEM,
 ];
 
 export const TOOLBAR_ITEMS: {

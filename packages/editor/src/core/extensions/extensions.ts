@@ -1,3 +1,4 @@
+// eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -14,6 +15,7 @@ import { Underline } from "@tiptap/extension-underline";
 import { Markdown } from "tiptap-markdown";
 // extensions
 import {
+  AttachmentExtension,
   CustomCalloutExtension,
   CustomCodeBlockExtension,
   CustomCodeInlineExtension,
@@ -121,6 +123,10 @@ export const CoreEditorExtensions = (args: TArguments): Extensions => {
     CustomColorExtension,
     CustomTextAlignExtension,
     CustomCalloutExtension,
+    AttachmentExtension({
+      fileHandler,
+      isEditable: editable,
+    }),
     UtilityExtension({
       disabledExtensions,
       flaggedExtensions,

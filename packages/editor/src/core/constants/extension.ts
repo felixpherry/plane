@@ -9,6 +9,7 @@ export enum CORE_EXTENSIONS {
   BOLD = "bold",
   BULLET_LIST = "bulletList",
   CALLOUT = "calloutComponent",
+  ATTACHMENT = "attachmentComponent",
   CHARACTER_COUNT = "characterCount",
   CODE_BLOCK = "codeBlock",
   CODE_INLINE = "code",
@@ -72,6 +73,7 @@ export const BLOCK_NODE_TYPES = [
   // Media and embed nodes
   CORE_EXTENSIONS.IMAGE,
   CORE_EXTENSIONS.CUSTOM_IMAGE,
+  CORE_EXTENSIONS.ATTACHMENT,
   CORE_EXTENSIONS.CALLOUT,
   CORE_EXTENSIONS.WORK_ITEM_EMBED,
 ];

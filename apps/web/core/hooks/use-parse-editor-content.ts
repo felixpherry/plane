@@ -99,9 +99,11 @@ export const useParseEditorContent = (args: TArgs) => {
       });
       // handle image-component elements
       const imageComponents = doc.querySelectorAll("image-component");
+      const attachmentComponents = doc.querySelectorAll("attachment-component");
       if (noAssets) {
-        // if no assets is enabled, remove the image component elements
+        // if no assets is enabled, remove the asset component elements
         imageComponents.forEach((component) => component.remove());
+        attachmentComponents.forEach((component) => component.remove());
         // remove default img elements
         const imageElements = doc.querySelectorAll("img");
         imageElements.forEach((img) => img.remove());
@@ -119,6 +121,22 @@ export const useParseEditorContent = (args: TArgs) => {
           img.style.width = width;
           // replace the image-component with the img element
           component.replaceWith(img);
+        });
+
+        attachmentComponents.forEach((component) => {
+          const src = component.getAttribute("src") ?? "";
+          const name = component.getAttribute("name") ?? "File";
+          const assetSrc = src.startsWith("http")
+            ? src
+            : (getEditorAssetSrc({
+                assetId: src,
+                projectId,
+                workspaceSlug,
+              }) ?? src);
+          const link = doc.createElement("a");
+          link.href = assetSrc;
+          link.textContent = name;
+          component.replaceWith(link);
         });
       }
       // convert all images to base64
@@ -160,7 +178,7 @@ export const useParseEditorContent = (args: TArgs) => {
       serializedDoc = serializedDoc.replace(/background-color: null/g, "").replace(/color: null/g, "");
       return serializedDoc;
     },
-    [getUserDetails, parseAdditionalEditorContent]
+    [getUserDetails, parseAdditionalEditorContent, projectId, workspaceSlug]
   );
 
   /**
@@ -196,25 +214,42 @@ export const useParseEditorContent = (args: TArgs) => {
           }
         }
       });
-      // replace the matched image components with <img src={src} >
+      // replace image and attachment custom components
       const imageComponentRegex = /<image-component[^>]*src="([^"]+)"[^>]*>[^]*<\/image-component>/g;
+      const attachmentComponentRegex = /<attachment-component([^>]*)>[^]*<\/attachment-component>/g;
       const imgTagRegex = /<img[^>]*src="([^"]+)"[^>]*\/?>/g;
       if (noAssets) {
-        // remove all image components
-        parsedMarkdownContent = parsedMarkdownContent.replace(imageComponentRegex, "").replace(imgTagRegex, "");
+        // remove all asset components
+        parsedMarkdownContent = parsedMarkdownContent
+          .replace(imageComponentRegex, "")
+          .replace(attachmentComponentRegex, "")
+          .replace(imgTagRegex, "");
       } else {
         // replace the matched image components with <img src={src} >
         parsedMarkdownContent = parsedMarkdownContent.replace(
           imageComponentRegex,
           (_match, src) => `<img src="${src}" >`
         );
+        parsedMarkdownContent = parsedMarkdownContent.replace(attachmentComponentRegex, (_match, attributes) => {
+          const src = String(attributes.match(/src="([^"]+)"/)?.[1] ?? "");
+          const name = String(attributes.match(/name="([^"]*)"/)?.[1] ?? "File");
+          if (!src) return "";
+          const assetSrc = src.startsWith("http")
+            ? src
+            : (getEditorAssetSrc({
+                assetId: src,
+                projectId,
+                workspaceSlug,
+              }) ?? src);
+          return `[${name || "File"}](${assetSrc})`;
+        });
       }
       // remove all issue-embed components
       const issueEmbedRegex = /<issue-embed-component[^>]*>[^]*<\/issue-embed-component>/g;
       parsedMarkdownContent = parsedMarkdownContent.replace(issueEmbedRegex, "");
       return parsedMarkdownContent;
     },
-    [getUserDetails, parseAdditionalEditorContent, workspaceSlug]
+    [getUserDetails, parseAdditionalEditorContent, projectId, workspaceSlug]
   );
 
   const getEditorMetaData = useCallback(
@@ -222,9 +257,9 @@ export const useParseEditorContent = (args: TArgs) => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlContent, "text/html");
       const filesMetaData: TCustomComponentsMetaData["file_assets"] = [];
-      // process image components
-      const imageComponents = doc.querySelectorAll("image-component");
-      imageComponents.forEach((element) => {
+      // process image and attachment components
+      const assetComponents = doc.querySelectorAll("image-component, attachment-component");
+      assetComponents.forEach((element) => {
         const src = element.getAttribute("src");
         if (src) {
           const assetSrc = src.startsWith("http")
@@ -237,7 +272,7 @@ export const useParseEditorContent = (args: TArgs) => {
           if (assetSrc) {
             filesMetaData.push({
               id: src,
-              name: src,
+              name: element.getAttribute("name") ?? src,
               url: assetSrc,
             });
           }

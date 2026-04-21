@@ -26,6 +26,14 @@ export const parseCustomComponents = (args: TArgs): Record<string, Handle> => {
       if (!src || !fileAssetDetails) return createTextNode("");
       return createTextNode(`![${fileAssetDetails.name}](${fileAssetDetails.url})`);
     },
+    "attachment-component": (_state, node) => {
+      const properties = node.properties || {};
+      const src = String(properties.src);
+      const name = String(properties.name || "File");
+      const fileAssetDetails = getFileAssetDetails(src);
+      if (!src || !fileAssetDetails) return createTextNode("");
+      return createTextNode(`[${name || fileAssetDetails.name}](${fileAssetDetails.url})`);
+    },
     img: (_state, node) => {
       const properties = node.properties || {};
       const src = String(properties.src);

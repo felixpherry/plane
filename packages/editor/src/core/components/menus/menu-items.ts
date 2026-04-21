@@ -13,6 +13,7 @@ import {
   Heading3,
   TextQuote,
   ImageIcon,
+  Paperclip,
   TableIcon,
   ListIcon,
   ListOrderedIcon,
@@ -34,6 +35,7 @@ import { LinkIcon } from "@plane/propel/icons";
 import { CORE_EXTENSIONS } from "@/constants/extension";
 // helpers
 import {
+  insertAttachment,
   insertHorizontalRule,
   insertImage,
   insertTableCommand,
@@ -198,6 +200,14 @@ export const ImageItem = (editor: Editor): EditorMenuItem<"image"> => ({
   icon: ImageIcon,
 });
 
+export const AttachmentItem = (editor: Editor): EditorMenuItem<"attachment"> => ({
+  key: "attachment",
+  name: "File",
+  isActive: () => editor?.isActive(CORE_EXTENSIONS.ATTACHMENT),
+  command: () => insertAttachment({ editor, event: "insert", pos: editor.state.selection.from }),
+  icon: Paperclip,
+});
+
 export const HorizontalRuleItem = (editor: Editor): EditorMenuItem<"divider"> =>
   ({
     key: "divider",
@@ -277,6 +287,7 @@ export const getEditorMenuItems = (editor: Editor | null): EditorMenuItem<TEdito
     QuoteItem(editor),
     TableItem(editor),
     ImageItem(editor),
+    AttachmentItem(editor),
     HorizontalRuleItem(editor),
     LinkItem(editor),
     TextColorItem(editor),

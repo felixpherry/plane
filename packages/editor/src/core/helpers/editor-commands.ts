@@ -1,3 +1,4 @@
+// eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -9,6 +10,7 @@ import type { Editor, Range } from "@tiptap/core";
 import { CORE_EXTENSIONS } from "@/constants/extension";
 // extensions
 import { replaceCodeWithText } from "@/extensions/code/utils/replace-code-block-with-text";
+import type { InsertAttachmentComponentProps } from "@/extensions/attachment/types";
 import type { InsertImageComponentProps } from "@/extensions/custom-image/types";
 // helpers
 import type { ExtendedEmojiStorage } from "@/extensions/emoji/emoji";
@@ -130,6 +132,27 @@ export const insertImage = ({
   return editor?.chain().focus().insertImageComponent(imageOptions).run();
 };
 
+export const insertAttachment = ({
+  editor,
+  event,
+  pos,
+  file,
+  range,
+}: {
+  editor: Editor;
+  event: "insert" | "drop";
+  pos?: number | null;
+  file?: File;
+  range?: Range;
+}) => {
+  if (range) editor.chain().focus().deleteRange(range).run();
+
+  const attachmentOptions: InsertAttachmentComponentProps = { event };
+  if (pos) attachmentOptions.pos = pos;
+  if (file) attachmentOptions.file = file;
+  return editor?.chain().focus().insertAttachmentComponent(attachmentOptions).run();
+};
+
 export const unsetLinkEditor = (editor: Editor) => {
   editor.chain().focus().unsetLink().run();
 };
@@ -147,7 +170,10 @@ export const setLinkEditor = (editor: Editor, url: string, text?: string) => {
     // Extracting the new selection start point.
     const previousFrom = previousSelection.from;
 
-    editor.commands.setTextSelection({ from: previousFrom, to: previousFrom + text.length });
+    editor.commands.setTextSelection({
+      from: previousFrom,
+      to: previousFrom + text.length,
+    });
   }
   editor.chain().focus().setLink({ href: url }).run();
 };

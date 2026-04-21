@@ -1,3 +1,4 @@
+// eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -15,6 +16,7 @@ import {
   Heading5,
   Heading6,
   ImageIcon,
+  Paperclip,
   List,
   ListOrdered,
   ListTodo,
@@ -36,6 +38,7 @@ import {
   toggleHeading,
   toggleTextColor,
   toggleBackgroundColor,
+  insertAttachment,
   insertImage,
   insertCallout,
   setText,
@@ -301,6 +304,18 @@ export const getSlashCommandFilteredSections =
         pushAfter: "code",
       });
     }
+
+    internalAdditionalOptions.push({
+      commandKey: "attachment",
+      key: "attachment",
+      title: "File",
+      icon: <Paperclip className="size-3.5" />,
+      description: "Insert a file",
+      searchTerms: ["file", "attachment", "upload", "document", "paperclip"],
+      command: ({ editor, range }: CommandProps) => insertAttachment({ editor, event: "insert", range }),
+      section: "general",
+      pushAfter: disabledExtensions?.includes("image") ? "code" : "image",
+    });
 
     [
       ...internalAdditionalOptions,

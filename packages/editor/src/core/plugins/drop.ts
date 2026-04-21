@@ -8,6 +8,8 @@ import type { Editor } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 // constants
 import { ACCEPTED_ATTACHMENT_MIME_TYPES, ACCEPTED_IMAGE_MIME_TYPES } from "@/constants/config";
+// helpers
+import { insertAttachment } from "@/helpers/editor-commands";
 // types
 import type { TEditorCommands, TExtensions } from "@/types";
 
@@ -127,6 +129,12 @@ export const insertFilesSafely = async (args: InsertFilesSafelyArgs) => {
           event,
         });
       } else if (fileType === "attachment") {
+        insertAttachment({
+          editor,
+          event,
+          file,
+          pos,
+        });
       }
     } catch (error) {
       console.error(`Error while ${event}ing file:`, error);

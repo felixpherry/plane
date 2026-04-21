@@ -6,7 +6,8 @@
 
 // plane imports
 import type { ADDITIONAL_EXTENSIONS } from "@plane/utils";
-import { CORE_EXTENSIONS } from "@plane/utils";
+// constants
+import { CORE_EXTENSIONS } from "@/constants/extension";
 // plane editor imports
 import type { ExtensionFileSetStorageKey } from "@/plane-editor/types/storage";
 
@@ -25,5 +26,8 @@ export const NODE_FILE_MAP: NodeFileMapType = {
   },
   [CORE_EXTENSIONS.CUSTOM_IMAGE]: {
     fileSetName: "deletedImageSet",
+  },
+  [CORE_EXTENSIONS.ATTACHMENT]: {
+    fileSetName: "deletedAttachmentSet",
   },
 };

@@ -12,7 +12,9 @@ import { Download } from "lucide-react";
 import { CORE_EXTENSIONS } from "@plane/editor";
 import type { TEditorAsset } from "@plane/editor";
 import { useTranslation } from "@plane/i18n";
-import { getEditorAssetDownloadSrc, getEditorAssetSrc } from "@plane/utils";
+import { convertBytesToSize, getEditorAssetDownloadSrc, getEditorAssetSrc, getFileExtension } from "@plane/utils";
+// components
+import { getFileIcon } from "@/components/icons";
 // plane web imports
 import { AdditionalPageNavigationPaneAssetItem } from "@/plane-web/components/pages/navigation-pane/tab-panels/assets";
 import { PageNavigationPaneAssetsTabEmptyState } from "@/plane-web/components/pages/navigation-pane/tab-panels/empty-states/assets";
@@ -94,6 +96,29 @@ const AssetItem = observer(function AssetItem(props: AssetItemProps) {
             </a>
           </div>
         </div>
+      </a>
+    );
+
+  if (asset.type === CORE_EXTENSIONS.ATTACHMENT)
+    return (
+      <a
+        href={asset.href}
+        className="group/asset-item relative flex min-h-12 items-center gap-3 rounded-sm border border-subtle px-3 py-2 transition-colors hover:bg-layer-1"
+      >
+        <div className="flex shrink-0 items-center gap-3">{getFileIcon(getFileExtension(asset.name), 18)}</div>
+        <div className="min-w-0 flex-1 space-y-0.5 truncate">
+          <p className="truncate text-13 font-medium">{asset.name}</p>
+          <p className="text-11 text-secondary">{convertBytesToSize(asset.size)}</p>
+        </div>
+        <a
+          href={assetDownloadSrc}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="pointer-events-none flex shrink-0 items-center gap-1 rounded-sm px-1 py-0.5 text-secondary opacity-0 transition-opacity group-hover/asset-item:pointer-events-auto group-hover/asset-item:opacity-100 hover:text-primary"
+        >
+          <Download className="size-3 shrink-0" />
+          <span className="text-11 font-medium">{t("page_navigation_pane.tabs.assets.download_button")}</span>
+        </a>
       </a>
     );
 
