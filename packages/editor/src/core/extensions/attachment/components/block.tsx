@@ -43,13 +43,11 @@ export function AttachmentBlock(props: Props) {
       <div className="grid size-8 shrink-0 place-items-center rounded-md bg-layer-3 text-secondary">
         <FileText className="size-4" />
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-13 font-medium text-primary">{fileName}</p>
-        <div className="mt-0.5 flex items-center gap-2 text-12 text-secondary">
-          {fileExtension && <span className="uppercase">{fileExtension}</span>}
-          {fileExtension && formattedSize && <span className="bg-secondary/40 size-1 rounded-full" />}
-          {formattedSize && <span>{formattedSize}</span>}
-        </div>
+      <span className="truncate text-13 font-medium text-primary">{fileName}</span>
+      <div className="flex items-center gap-2 text-12 text-disabled">
+        {fileExtension && <span className="uppercase">{fileExtension}</span>}
+        {fileExtension && formattedSize && <span className="bg-secondary/40 size-1 rounded-full" />}
+        {formattedSize && <span>{formattedSize}</span>}
       </div>
     </button>
   );
