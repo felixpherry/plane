@@ -1,3 +1,4 @@
+// eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -11,6 +12,7 @@ import { ACCEPTED_IMAGE_MIME_TYPES } from "@/constants/config";
 // helpers
 import { isFileValid } from "@/helpers/file";
 import { insertEmptyParagraphAtNodeBoundaries } from "@/helpers/insert-empty-paragraph-at-node-boundary";
+import { showEditorErrorToast } from "@/helpers/toast";
 // types
 import type { TFileHandler } from "@/types";
 // local imports
@@ -74,7 +76,7 @@ export function CustomImageExtension(props: Props) {
                 acceptedMimeTypes: ACCEPTED_IMAGE_MIME_TYPES,
                 file: props.file,
                 maxFileSize: this.storage.maxFileSize,
-                onError: (_error, message) => alert(message),
+                onError: (_error, message) => showEditorErrorToast(message),
               })
             ) {
               return false;

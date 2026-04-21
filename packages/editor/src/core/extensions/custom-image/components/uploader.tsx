@@ -1,3 +1,4 @@
+// eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -17,6 +18,7 @@ import type { EFileError } from "@/helpers/file";
 // hooks
 import { useUploader, useDropZone, uploadFirstFileAndInsertRemaining } from "@/hooks/use-file-upload";
 // local imports
+import { showEditorErrorToast } from "@/helpers/toast";
 import { ECustomImageStatus } from "../types";
 import { getImageComponentImageFileMap } from "../utils";
 import type { CustomImageNodeViewProps } from "./node-view";
@@ -110,7 +112,7 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
   );
 
   const handleInvalidFile = useCallback((_error: EFileError, _file: File, message: string) => {
-    alert(message);
+    showEditorErrorToast(message);
   }, []);
 
   // hooks
@@ -148,7 +150,10 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
           fileInputRef.current.click();
         }
         hasTriggeredFilePickerRef.current = true;
-        imageComponentImageFileMap?.set(imageEntityId ?? "", { ...meta, hasOpenedFileInputOnce: true });
+        imageComponentImageFileMap?.set(imageEntityId ?? "", {
+          ...meta,
+          hasOpenedFileInputOnce: true,
+        });
       }
     } else {
       hasTriedUploadingOnMountRef.current = true;

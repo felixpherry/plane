@@ -29,7 +29,7 @@ export function AttachmentBlock(props: Props) {
       type="button"
       contentEditable={false}
       className={cn(
-        "group/attachment-component bg-surface-primary flex w-full max-w-[520px] cursor-pointer items-center gap-3 rounded-lg border border-subtle px-3 py-3 text-left transition-all duration-200 ease-in-out hover:bg-layer-3",
+        "group/attachment-component bg-surface-primary flex w-full cursor-pointer items-center gap-3 rounded-md border border-subtle px-3 py-2 text-left transition-all duration-200 ease-in-out hover:bg-layer-3",
         {
           "border-accent-primary/40 bg-accent-primary/10": selected && editor.isEditable,
         }
@@ -40,12 +40,12 @@ export function AttachmentBlock(props: Props) {
         }
       }}
     >
-      <div className="grid size-10 shrink-0 place-items-center rounded-md bg-layer-3 text-secondary">
-        <FileText className="size-5" />
+      <div className="grid size-8 shrink-0 place-items-center rounded-md bg-layer-3 text-secondary">
+        <FileText className="size-4" />
       </div>
-      <div className="min-w-0 flex-1 space-y-1">
-        <p className="truncate text-14 font-medium text-primary">{fileName}</p>
-        <div className="flex items-center gap-2 text-12 text-secondary">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-13 font-medium text-primary">{fileName}</p>
+        <div className="mt-0.5 flex items-center gap-2 text-12 text-secondary">
           {fileExtension && <span className="uppercase">{fileExtension}</span>}
           {fileExtension && formattedSize && <span className="bg-secondary/40 size-1 rounded-full" />}
           {formattedSize && <span>{formattedSize}</span>}

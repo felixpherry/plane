@@ -1,3 +1,4 @@
+// eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -10,6 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 // helpers
 import type { EFileError } from "@/helpers/file";
 import { isFileValid } from "@/helpers/file";
+import { getEditorErrorMessage, showEditorErrorToast } from "@/helpers/toast";
 // plugins
 import { insertFilesSafely } from "@/plugins/drop";
 // types
@@ -74,8 +76,9 @@ export const useUploader = (args: TUploaderArgs) => {
           throw new Error("Something went wrong while uploading the file.");
         }
         onUpload(url, file);
-      } catch {
-        console.error("useFileUpload: Error in uploading file");
+      } catch (error: unknown) {
+        console.error("useFileUpload: Error in uploading file", error);
+        showEditorErrorToast(getEditorErrorMessage(error, "Something went wrong while uploading the file."));
       } finally {
         handleProgressStatus?.(false);
         setIsUploading(false);

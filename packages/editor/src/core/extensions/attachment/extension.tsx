@@ -11,6 +11,7 @@ import { ACCEPTED_ATTACHMENT_MIME_TYPES } from "@/constants/config";
 // helpers
 import { isFileValid } from "@/helpers/file";
 import { insertEmptyParagraphAtNodeBoundaries } from "@/helpers/insert-empty-paragraph-at-node-boundary";
+import { showEditorErrorToast } from "@/helpers/toast";
 // types
 import type { TFileHandler } from "@/types";
 // local imports
@@ -69,7 +70,7 @@ export function AttachmentExtension(options: Props) {
                 acceptedMimeTypes: ACCEPTED_ATTACHMENT_MIME_TYPES,
                 file: commandProps.file,
                 maxFileSize: this.storage.maxFileSize,
-                onError: (_error, message) => alert(message),
+                onError: (_error, message) => showEditorErrorToast(message),
               })
             ) {
               return false;

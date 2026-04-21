@@ -17,6 +17,7 @@ import type { EFileError } from "@/helpers/file";
 // hooks
 import { uploadFirstFileAndInsertRemaining, useDropZone, useUploader } from "@/hooks/use-file-upload";
 // local imports
+import { showEditorErrorToast } from "@/helpers/toast";
 import { EAttachmentStatus } from "../types";
 import { getAttachmentComponentFileMap } from "../utils";
 import type { AttachmentNodeViewProps } from "./node-view";
@@ -87,7 +88,7 @@ export function AttachmentUploader(props: AttachmentUploaderProps) {
   );
 
   const handleInvalidFile = useCallback((_error: EFileError, _file: File, message: string) => {
-    alert(message);
+    showEditorErrorToast(message);
   }, []);
 
   const { isUploading: isAttachmentBeingUploaded, uploadFile } = useUploader({
@@ -185,7 +186,7 @@ export function AttachmentUploader(props: AttachmentUploaderProps) {
   return (
     <div
       className={cn(
-        "attachment-upload-component flex cursor-default items-center justify-start gap-2 rounded-lg border border-dashed bg-layer-3 px-3 py-3 text-tertiary transition-all duration-200 ease-in-out",
+        "attachment-upload-component flex w-full cursor-default items-center justify-start gap-2 rounded-md border border-dashed bg-layer-3 px-3 py-2 text-tertiary transition-all duration-200 ease-in-out",
         {
           "border-subtle": !(selected && editor.isEditable && !isErrorState),
           "cursor-pointer hover:bg-layer-3-hover hover:text-secondary": editor.isEditable && !isErrorState,
@@ -209,8 +210,10 @@ export function AttachmentUploader(props: AttachmentUploaderProps) {
         }
       }}
     >
-      <FileText className="size-4" />
-      <div className="flex-1 text-14 font-medium">{getDisplayMessage()}</div>
+      <div className="grid size-8 shrink-0 place-items-center rounded-md bg-layer-2 text-secondary">
+        <FileText className="size-4" />
+      </div>
+      <div className="flex-1 text-13 font-medium">{getDisplayMessage()}</div>
       {hasDuplicationFailed && editor.isEditable && (
         <button
           type="button"
