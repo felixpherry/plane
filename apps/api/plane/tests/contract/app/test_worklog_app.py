@@ -7,6 +7,7 @@ from datetime import timedelta
 import pytest
 from rest_framework import status
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from plane.db.models import ActiveTimer, Issue, IssueAssignee, Project, State, Worklog, Workspace, WorkspaceMember
 
@@ -253,7 +254,11 @@ class TestWorklogTimerAPI:
         )
         assert start_response.status_code == status.HTTP_201_CREATED
 
-        lease_token = start_response.json()["lease_token"]
+        start_payload = start_response.json()
+        lease_token = start_payload["lease_token"]
+        start_lease_expires_at = parse_datetime(start_payload["active_timer"]["lease_expires_at"])
+        assert start_lease_expires_at is not None
+        assert 570 <= (start_lease_expires_at - timezone.now()).total_seconds() <= 600
 
         rejected_response = session_client.post(
             heartbeat_url,
@@ -268,5 +273,9 @@ class TestWorklogTimerAPI:
             format="json",
         )
         assert accepted_response.status_code == status.HTTP_200_OK
-        assert accepted_response.json()["active_timer"]["issue"] == str(issue.id)
+        accepted_payload = accepted_response.json()
+        assert accepted_payload["active_timer"]["issue"] == str(issue.id)
+        heartbeat_lease_expires_at = parse_datetime(accepted_payload["active_timer"]["lease_expires_at"])
+        assert heartbeat_lease_expires_at is not None
+        assert 570 <= (heartbeat_lease_expires_at - timezone.now()).total_seconds() <= 600
         assert ActiveTimer.objects.filter(user=create_user, deleted_at__isnull=True).count() == 1

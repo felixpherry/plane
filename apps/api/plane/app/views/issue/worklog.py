@@ -21,7 +21,7 @@ from plane.api.serializers import (
 )
 from plane.db.models import ActiveTimer, Issue, IssueAssignee, Workspace, Worklog
 
-TIMER_LEASE_SECONDS = 15
+TIMER_LEASE_SECONDS = 600
 
 
 def get_user_active_timers(user, *, for_update=False):
