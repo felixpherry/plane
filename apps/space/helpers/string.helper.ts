@@ -29,11 +29,20 @@ const fallbackCopyTextToClipboard = (text: string) => {
 };
 
 export const copyTextToClipboard = async (text: string) => {
-  if (!navigator.clipboard) {
+  if (typeof window === "undefined" || typeof document === "undefined" || typeof navigator === "undefined") {
+    return;
+  }
+
+  if (!window.isSecureContext || !navigator.clipboard?.writeText) {
     fallbackCopyTextToClipboard(text);
     return;
   }
-  await navigator.clipboard.writeText(text);
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (_err) {
+    fallbackCopyTextToClipboard(text);
+  }
 };
 
 /**
@@ -47,7 +56,7 @@ export const checkEmailValidity = (email: string): boolean => {
   if (!email) return false;
 
   const isEmailValid =
-    /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
+    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
       email
     );
 

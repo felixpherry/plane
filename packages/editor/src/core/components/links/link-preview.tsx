@@ -6,6 +6,7 @@
 
 import { Link2Off } from "lucide-react";
 import { CopyIcon, GlobeIcon, EditIcon } from "@plane/propel/icons";
+import { copyTextToClipboard } from "@plane/utils";
 // components
 import type { LinkViewProps, LinkViews } from "@/components/links";
 
@@ -24,7 +25,7 @@ export function LinkPreview({
   };
 
   const copyLinkToClipboard = () => {
-    navigator.clipboard.writeText(url);
+    void copyTextToClipboard(url);
     viewProps.closeLinkView();
   };
 

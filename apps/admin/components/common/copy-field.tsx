@@ -9,6 +9,7 @@ import React from "react";
 import { Button } from "@plane/propel/button";
 import { CopyIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { copyTextToClipboard } from "@plane/utils";
 
 type Props = {
   label: string;
@@ -34,7 +35,7 @@ export function CopyField(props: Props) {
         size="lg"
         className="flex items-center justify-between py-2"
         onClick={() => {
-          navigator.clipboard.writeText(url);
+          void copyTextToClipboard(url);
           setToast({
             type: TOAST_TYPE.INFO,
             title: "Copied to clipboard",

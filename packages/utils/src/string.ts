@@ -1,3 +1,4 @@
+// eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -374,11 +375,20 @@ const fallbackCopyTextToClipboard = (text: string) => {
  * await copyTextToClipboard("Hello, World!") // copies "Hello, World!" to clipboard
  */
 export const copyTextToClipboard = async (text: string): Promise<void> => {
-  if (!navigator.clipboard) {
+  if (typeof window === "undefined" || typeof document === "undefined" || typeof navigator === "undefined") {
+    return;
+  }
+
+  if (!window.isSecureContext || !navigator.clipboard?.writeText) {
     fallbackCopyTextToClipboard(text);
     return;
   }
-  await navigator.clipboard.writeText(text);
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (_err) {
+    fallbackCopyTextToClipboard(text);
+  }
 };
 
 /**

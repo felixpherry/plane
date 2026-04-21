@@ -14,7 +14,7 @@ import { CopyIcon } from "@plane/propel/icons";
 // ui
 import { Tooltip } from "@plane/propel/tooltip";
 // plane utils
-import { cn } from "@plane/utils";
+import { cn, copyTextToClipboard } from "@plane/utils";
 // types
 import type { TCodeBlockAttributes } from "./types";
 import { ECodeBlockAttributeNames } from "./types";
@@ -34,7 +34,7 @@ export function CodeBlockComponent({ node }: Props) {
 
   const copyToClipboard = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     try {
-      await navigator.clipboard.writeText(node.textContent);
+      await copyTextToClipboard(node.textContent);
       setCopied(true);
       setTimeout(() => setCopied(false), 1000);
     } catch {
