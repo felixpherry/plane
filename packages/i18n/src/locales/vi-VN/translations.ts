@@ -816,6 +816,7 @@ export default {
     actions: {
       edit: "Chỉnh sửa",
       make_a_copy: "Tạo bản sao",
+      move_to_different_project: "Move to different project",
       open_in_new_tab: "Mở trong tab mới",
       copy_link: "Sao chép liên kết",
       archive: "Lưu trữ",

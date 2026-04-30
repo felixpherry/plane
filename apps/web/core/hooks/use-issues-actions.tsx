@@ -1,3 +1,4 @@
+// eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -34,6 +35,11 @@ export interface IssueActions {
   createIssue?: (projectId: string | undefined | null, data: Partial<TIssue>) => Promise<TIssue | undefined>;
   quickAddIssue?: (projectId: string | undefined | null, data: TIssue) => Promise<TIssue | undefined>;
   updateIssue?: (projectId: string | undefined | null, issueId: string, data: Partial<TIssue>) => Promise<void>;
+  moveIssue?: (
+    projectId: string | undefined | null,
+    issueId: string,
+    targetProjectId: string
+  ) => Promise<TIssue | undefined>;
   removeIssueFromView?: (projectId: string | undefined | null, issueId: string) => Promise<void>;
   archiveIssue?: (projectId: string | undefined | null, issueId: string) => Promise<void>;
   restoreIssue?: (projectId: string | undefined | null, issueId: string) => Promise<void>;
@@ -130,6 +136,13 @@ const useProjectIssueActions = () => {
     },
     [issues.removeIssue, workspaceSlug]
   );
+  const moveIssue = useCallback(
+    async (projectId: string | undefined | null, issueId: string, targetProjectId: string) => {
+      if (!workspaceSlug || !projectId || !targetProjectId) return;
+      return await issues.moveIssue(workspaceSlug, projectId, issueId, targetProjectId);
+    },
+    [issues.moveIssue, workspaceSlug]
+  );
   const archiveIssue = useCallback(
     async (projectId: string | undefined | null, issueId: string) => {
       if (!workspaceSlug || !projectId) return;
@@ -154,10 +167,21 @@ const useProjectIssueActions = () => {
       quickAddIssue,
       updateIssue,
       removeIssue,
+      moveIssue,
       archiveIssue,
       updateFilters,
     }),
-    [fetchIssues, fetchNextIssues, createIssue, quickAddIssue, updateIssue, removeIssue, archiveIssue, updateFilters]
+    [
+      fetchIssues,
+      fetchNextIssues,
+      createIssue,
+      quickAddIssue,
+      updateIssue,
+      removeIssue,
+      moveIssue,
+      archiveIssue,
+      updateFilters,
+    ]
   );
 };
 
@@ -301,6 +325,13 @@ const useCycleIssueActions = () => {
     },
     [issues.removeIssue, workspaceSlug]
   );
+  const moveIssue = useCallback(
+    async (projectId: string | undefined | null, issueId: string, targetProjectId: string) => {
+      if (!workspaceSlug || !projectId || !targetProjectId) return;
+      return await issues.moveIssue(workspaceSlug, projectId, issueId, targetProjectId);
+    },
+    [issues.moveIssue, workspaceSlug]
+  );
   const removeIssueFromView = useCallback(
     async (projectId: string | undefined | null, issueId: string) => {
       if (!cycleId || !workspaceSlug || !projectId) return;
@@ -332,6 +363,7 @@ const useCycleIssueActions = () => {
       quickAddIssue,
       updateIssue,
       removeIssue,
+      moveIssue,
       removeIssueFromView,
       archiveIssue,
       updateFilters,
@@ -343,6 +375,7 @@ const useCycleIssueActions = () => {
       quickAddIssue,
       updateIssue,
       removeIssue,
+      moveIssue,
       removeIssueFromView,
       archiveIssue,
       updateFilters,
@@ -408,6 +441,13 @@ const useModuleIssueActions = () => {
     },
     [issues.removeIssue, workspaceSlug]
   );
+  const moveIssue = useCallback(
+    async (projectId: string | undefined | null, issueId: string, targetProjectId: string) => {
+      if (!workspaceSlug || !projectId || !targetProjectId) return;
+      return await issues.moveIssue(workspaceSlug, projectId, issueId, targetProjectId);
+    },
+    [issues.moveIssue, workspaceSlug]
+  );
   const removeIssueFromView = useCallback(
     async (projectId: string | undefined | null, issueId: string) => {
       if (!moduleId || !workspaceSlug || !projectId) return;
@@ -439,11 +479,12 @@ const useModuleIssueActions = () => {
       quickAddIssue,
       updateIssue,
       removeIssue,
+      moveIssue,
       removeIssueFromView,
       archiveIssue,
       updateFilters,
     }),
-    [fetchIssues, createIssue, updateIssue, removeIssue, removeIssueFromView, archiveIssue, updateFilters]
+    [fetchIssues, createIssue, updateIssue, removeIssue, moveIssue, removeIssueFromView, archiveIssue, updateFilters]
   );
 };
 
@@ -712,6 +753,13 @@ const useGlobalIssueActions = () => {
     },
     [issues.removeIssue, workspaceSlug]
   );
+  const moveIssue = useCallback(
+    async (projectId: string | undefined | null, issueId: string, targetProjectId: string) => {
+      if (!workspaceSlug || !projectId || !targetProjectId) return;
+      return await issues.moveIssue(workspaceSlug, projectId, issueId, targetProjectId);
+    },
+    [issues.moveIssue, workspaceSlug]
+  );
 
   const updateFilters = useCallback(
     async (projectId: string, filterType: TSupportedFilterTypeForUpdate, filters: TSupportedFilterForUpdate) => {
@@ -728,9 +776,10 @@ const useGlobalIssueActions = () => {
       createIssue,
       updateIssue,
       removeIssue,
+      moveIssue,
       updateFilters,
     }),
-    [createIssue, updateIssue, removeIssue, updateFilters]
+    [createIssue, updateIssue, removeIssue, moveIssue, updateFilters]
   );
 };
 

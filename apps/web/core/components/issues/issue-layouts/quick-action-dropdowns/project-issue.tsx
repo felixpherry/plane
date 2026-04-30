@@ -22,9 +22,10 @@ import { useUserPermissions } from "@/hooks/store/user";
 // helper
 import { ArchiveIssueModal } from "../../archive-issue-modal";
 import { DeleteIssueModal } from "../../delete-issue-modal";
+import { MoveIssueModal } from "../../move-issue-modal";
 import { CreateUpdateIssueModal } from "../../issue-modal/modal";
 import type { IQuickActionProps } from "../list/list-view-types";
-import type { MenuItemFactoryProps } from "./helper";
+import type { MenuItemFactoryProps, TMoveIssueProject } from "./helper";
 import { useProjectIssueMenuItems } from "./helper";
 
 export const ProjectIssueQuickActions = observer(function ProjectIssueQuickActions(props: IQuickActionProps) {
@@ -46,6 +47,7 @@ export const ProjectIssueQuickActions = observer(function ProjectIssueQuickActio
   const [issueToEdit, setIssueToEdit] = useState<TIssue | undefined>(undefined);
   const [deleteIssueModal, setDeleteIssueModal] = useState(false);
   const [archiveIssueModal, setArchiveIssueModal] = useState(false);
+  const [moveIssueProject, setMoveIssueProject] = useState<TMoveIssueProject | undefined>(undefined);
   // store hooks
   const { allowPermissions } = useUserPermissions();
   const { issuesFilter } = useIssues(EIssuesStoreType.PROJECT);
@@ -90,6 +92,7 @@ export const ProjectIssueQuickActions = observer(function ProjectIssueQuickActio
     setCreateUpdateIssueModal,
     setDeleteIssueModal,
     setArchiveIssueModal,
+    setMoveIssueProject,
     handleDelete,
     handleUpdate,
     handleArchive,
@@ -131,6 +134,13 @@ export const ProjectIssueQuickActions = observer(function ProjectIssueQuickActio
         isOpen={deleteIssueModal}
         handleClose={() => setDeleteIssueModal(false)}
         onSubmit={handleDelete}
+      />
+      <MoveIssueModal
+        data={issue}
+        isOpen={!!moveIssueProject}
+        targetProject={moveIssueProject}
+        handleClose={() => setMoveIssueProject(undefined)}
+        storeType={EIssuesStoreType.PROJECT}
       />
       <CreateUpdateIssueModal
         isOpen={createUpdateIssueModal}

@@ -5,16 +5,19 @@
 # Python imports
 import copy
 import json
+from uuid import UUID
 
 # Django imports
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.contrib.postgres.fields import ArrayField
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import connection, transaction
 from django.db.models import (
     Count,
     Exists,
     F,
     Func,
+    Max,
     OuterRef,
     Prefetch,
     Q,
@@ -45,21 +48,34 @@ from plane.bgtasks.issue_description_version_task import issue_description_versi
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.bgtasks.webhook_task import model_activity
 from plane.db.models import (
+    CommentReaction,
+    CustomFieldValue,
     CycleIssue,
+    Description,
     FileAsset,
     IntakeIssue,
     Issue,
+    IssueActivity,
     IssueAssignee,
+    IssueAttachment,
+    IssueComment,
     IssueLabel,
     IssueLink,
+    IssueMention,
     IssueReaction,
     IssueRelation,
+    IssueSequence,
     IssueSubscriber,
+    IssueVote,
+    ProjectIssueType,
     ProjectUserProperty,
     ModuleIssue,
     Project,
     ProjectMember,
+    State,
     UserRecentVisit,
+    WorkItemPageLink,
+    Worklog,
 )
 from plane.utils.filters import ComplexFilterBackend, IssueFilterSet
 from plane.utils.global_paginator import paginate
@@ -73,6 +89,7 @@ from plane.utils.issue_filters import issue_filters
 from plane.utils.order_queryset import order_issue_queryset
 from plane.utils.paginator import GroupedOffsetPaginator, SubGroupedOffsetPaginator
 from plane.utils.timezone_converter import user_timezone_converter
+from plane.utils.uuid import convert_uuid_to_integer
 
 from .. import BaseAPIView, BaseViewSet
 
@@ -699,6 +716,200 @@ class IssueViewSet(BaseViewSet):
                 )
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def _has_project_admin_or_member_permission(self, request, slug, project_id):
+        allowed_roles = [ROLE.ADMIN.value, ROLE.MEMBER.value]
+
+        if ProjectMember.objects.filter(
+            member=request.user,
+            workspace__slug=slug,
+            project_id=project_id,
+            role__in=allowed_roles,
+            is_active=True,
+        ).exists():
+            return True
+
+        return False
+
+    def _get_target_state(self, target_project):
+        if target_project.default_state_id:
+            return target_project.default_state
+
+        default_state = State.objects.filter(project=target_project, default=True, is_triage=False).first()
+        if default_state:
+            return default_state
+
+        return State.objects.filter(project=target_project, is_triage=False).first()
+
+    def _get_target_issue_type(self, issue, target_project):
+        if issue.type_id and not issue.type.is_epic:
+            target_project_issue_type = ProjectIssueType.objects.filter(
+                project=target_project,
+                issue_type_id=issue.type_id,
+                issue_type__is_active=True,
+            ).first()
+            if target_project_issue_type:
+                return issue.type
+
+        default_project_issue_type = ProjectIssueType.objects.filter(
+            project=target_project,
+            issue_type__is_active=True,
+            is_default=True,
+        ).select_related("issue_type").first()
+        if default_project_issue_type:
+            return default_project_issue_type.issue_type
+
+        workspace_default_issue_type = ProjectIssueType.objects.filter(
+            project=target_project,
+            issue_type__is_active=True,
+            issue_type__is_default=True,
+        ).select_related("issue_type").first()
+        return workspace_default_issue_type.issue_type if workspace_default_issue_type else None
+
+    def _allocate_issue_sequence(self, target_project):
+        lock_key = convert_uuid_to_integer(target_project.id)
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_xact_lock(%s)", [lock_key])
+
+        last_sequence = IssueSequence.objects.filter(project=target_project).aggregate(largest=Max("sequence"))[
+            "largest"
+        ]
+        return last_sequence + 1 if last_sequence else 1
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def move(self, request, slug, project_id, pk=None):
+        target_project_id = request.data.get("target_project_id")
+        if not target_project_id:
+            return Response({"error": "Target project is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            target_project_uuid = UUID(str(target_project_id))
+        except (TypeError, ValueError):
+            return Response({"error": "Target project is invalid"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if str(target_project_uuid) == str(project_id):
+            return Response({"error": "Target project must be different"}, status=status.HTTP_400_BAD_REQUEST)
+
+        target_project = Project.objects.filter(pk=target_project_uuid, workspace__slug=slug).first()
+        if not target_project:
+            return Response({"error": "Target project not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if not self._has_project_admin_or_member_permission(request, slug, target_project.id):
+            return Response(
+                {"error": "You don't have the required permissions."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        with transaction.atomic():
+            issue = (
+                Issue.objects.select_for_update()
+                .select_related("project", "type")
+                .filter(pk=pk, project_id=project_id, workspace__slug=slug, deleted_at__isnull=True)
+                .first()
+            )
+
+            if not issue:
+                return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            if issue.archived_at is not None:
+                return Response({"error": "Archived work items cannot be moved"}, status=status.HTTP_400_BAD_REQUEST)
+
+            if issue.is_draft:
+                return Response({"error": "Draft work items cannot be moved"}, status=status.HTTP_400_BAD_REQUEST)
+
+            if IntakeIssue.objects.filter(issue=issue).exists():
+                return Response({"error": "Intake work items cannot be moved"}, status=status.HTTP_400_BAD_REQUEST)
+
+            if issue.type_id and issue.type.is_epic:
+                return Response({"error": "Epics cannot be moved"}, status=status.HTTP_400_BAD_REQUEST)
+
+            source_project = issue.project
+            old_sequence_id = issue.sequence_id
+            new_sequence_id = self._allocate_issue_sequence(target_project)
+            target_state = self._get_target_state(target_project)
+            target_issue_type = self._get_target_issue_type(issue, target_project)
+
+            # Drop project-scoped properties.
+            IssueAssignee.objects.filter(issue=issue).delete()
+            IssueLabel.objects.filter(issue=issue).delete()
+            CycleIssue.objects.filter(issue=issue).delete()
+            ModuleIssue.objects.filter(issue=issue).delete()
+            IssueRelation.objects.filter(Q(issue=issue) | Q(related_issue=issue)).delete()
+            IssueSubscriber.objects.filter(issue=issue).delete()
+            IssueMention.objects.filter(issue=issue).delete()
+            CustomFieldValue.objects.filter(issue=issue).delete()
+            WorkItemPageLink.objects.filter(issue=issue).delete()
+
+            issue.project = target_project
+            issue.state = target_state
+            issue.sequence_id = new_sequence_id
+            issue.priority = "none"
+            issue.start_date = None
+            issue.target_date = None
+            issue.estimate_point = None
+            issue.parent = None
+            issue.completed_at = None
+            issue.type = target_issue_type
+            issue.save(
+                update_fields=[
+                    "project",
+                    "workspace",
+                    "state",
+                    "sequence_id",
+                    "priority",
+                    "start_date",
+                    "target_date",
+                    "estimate_point",
+                    "parent",
+                    "completed_at",
+                    "type",
+                    "description_stripped",
+                    "updated_at",
+                    "updated_by",
+                ]
+            )
+
+            IssueSequence.objects.create(issue=issue, sequence=new_sequence_id, project=target_project)
+
+            # Move preserved related content to target project scope.
+            preserved_project_models = [
+                IssueLink,
+                IssueAttachment,
+                IssueComment,
+                IssueActivity,
+                Worklog,
+                IssueReaction,
+                IssueVote,
+            ]
+            for model in preserved_project_models:
+                model.objects.filter(issue=issue).update(project=target_project)
+
+            CommentReaction.objects.filter(comment__issue=issue).update(project=target_project)
+            FileAsset.objects.filter(issue=issue).update(project=target_project)
+            FileAsset.objects.filter(comment__issue=issue).update(project=target_project)
+            Description.objects.filter(issue_comment_description__issue=issue).update(project=target_project)
+
+            IssueActivity.objects.create(
+                issue=issue,
+                project=target_project,
+                verb="moved",
+                field="project",
+                old_value=f"{source_project.identifier}-{old_sequence_id}",
+                new_value=f"{target_project.identifier}-{new_sequence_id}",
+                actor=request.user,
+                epoch=int(timezone.now().timestamp()),
+            )
+
+        return Response(
+            {
+                "id": str(issue.id),
+                "project_id": str(target_project.id),
+                "project_identifier": target_project.identifier,
+                "sequence_id": issue.sequence_id,
+                "state_id": str(issue.state_id) if issue.state_id else None,
+            },
+            status=status.HTTP_200_OK,
+        )
 
     @allow_permission([ROLE.ADMIN], creator=True, model=Issue)
     def destroy(self, request, slug, project_id, pk=None):

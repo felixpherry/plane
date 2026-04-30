@@ -796,6 +796,7 @@ export default {
     actions: {
       edit: "編輯",
       make_a_copy: "複製一份",
+      move_to_different_project: "Move to different project",
       open_in_new_tab: "在新分頁中開啟",
       copy_link: "複製連結",
       archive: "封存",

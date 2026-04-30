@@ -807,6 +807,7 @@ export default {
     actions: {
       edit: "Upravit",
       make_a_copy: "Vytvořit kopii",
+      move_to_different_project: "Move to different project",
       open_in_new_tab: "Otevřít v nové záložce",
       copy_link: "Kopírovat odkaz",
       archive: "Archivovat",

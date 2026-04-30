@@ -814,6 +814,7 @@ export default {
     actions: {
       edit: "Editează",
       make_a_copy: "Fă o copie",
+      move_to_different_project: "Move to different project",
       open_in_new_tab: "Deschide într-un nou tab",
       copy_link: "Copiază link-ul",
       archive: "Arhivează",

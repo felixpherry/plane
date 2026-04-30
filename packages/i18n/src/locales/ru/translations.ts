@@ -820,6 +820,7 @@ export default {
     actions: {
       edit: "Редактировать",
       make_a_copy: "Сделать копию",
+      move_to_different_project: "Move to different project",
       open_in_new_tab: "Открыть в новой вкладке",
       copy_link: "Копировать ссылку",
       archive: "Архивировать",

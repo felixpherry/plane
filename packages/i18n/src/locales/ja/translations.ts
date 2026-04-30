@@ -808,6 +808,7 @@ export default {
     actions: {
       edit: "編集",
       make_a_copy: "コピーを作成",
+      move_to_different_project: "Move to different project",
       open_in_new_tab: "新しいタブで開く",
       copy_link: "リンクをコピー",
       archive: "アーカイブ",

@@ -797,6 +797,7 @@ export default {
     actions: {
       edit: "编辑",
       make_a_copy: "创建副本",
+      move_to_different_project: "Move to different project",
       open_in_new_tab: "在新标签页中打开",
       copy_link: "复制链接",
       archive: "归档",

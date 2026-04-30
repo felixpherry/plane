@@ -58,6 +58,11 @@ urlpatterns = [
         name="project-issues-paginated",
     ),
     path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:pk>/move/",
+        IssueViewSet.as_view({"post": "move"}),
+        name="project-issue-move",
+    ),
+    path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:pk>/",
         IssueViewSet.as_view(
             {

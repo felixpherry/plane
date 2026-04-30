@@ -821,6 +821,7 @@ export default {
     actions: {
       edit: "Редагувати",
       make_a_copy: "Зробити копію",
+      move_to_different_project: "Move to different project",
       open_in_new_tab: "Відкрити в новій вкладці",
       copy_link: "Скопіювати посилання",
       archive: "Заархівувати",

@@ -802,6 +802,7 @@ export default {
     actions: {
       edit: "편집",
       make_a_copy: "복사본 만들기",
+      move_to_different_project: "Move to different project",
       open_in_new_tab: "새 탭에서 열기",
       copy_link: "링크 복사",
       archive: "아카이브",

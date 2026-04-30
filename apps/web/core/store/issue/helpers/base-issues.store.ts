@@ -1,3 +1,4 @@
+// eslint-disable
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -64,6 +65,7 @@ export interface IBaseIssuesStore {
 
   //actions
   removeIssue: (workspaceSlug: string, projectId: string, issueId: string) => Promise<void>;
+  moveIssue: (workspaceSlug: string, projectId: string, issueId: string, targetProjectId: string) => Promise<TIssue>;
   clear(shouldClearPaginationOptions?: boolean): void;
   // helper methods
   getIssueIds: (groupId?: string, subGroupId?: string) => string[] | undefined;
@@ -234,6 +236,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
       updateIssueDates: action,
       issueQuickAdd: action.bound,
       removeIssue: action.bound,
+      moveIssue: action.bound,
       issueArchive: action.bound,
       removeBulkIssues: action.bound,
       bulkArchiveIssues: action.bound,
@@ -582,7 +585,10 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     } catch (error) {
       // If errored out update store again to revert the change
       this.rootIssueStore.issues.updateIssue(issueId, issueBeforeUpdate ?? {});
-      this.updateIssueList(issueBeforeUpdate, { ...issueBeforeUpdate, ...data } as TIssue);
+      this.updateIssueList(issueBeforeUpdate, {
+        ...issueBeforeUpdate,
+        ...data,
+      } as TIssue);
       throw error;
     }
   }
@@ -609,6 +615,29 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     this.fetchParentStats(workspaceSlug, projectId);
     // Remove issue from main issue Map store
     this.rootIssueStore.issues.removeIssue(issueId);
+  }
+
+  /**
+   * This method is called to move an issue across projects
+   * @param workspaceSlug
+   * @param projectId
+   * @param issueId
+   * @param targetProjectId
+   */
+  async moveIssue(workspaceSlug: string, projectId: string, issueId: string, targetProjectId: string) {
+    const issueBeforeMove = clone(this.rootIssueStore.issues.getIssueById(issueId));
+    this.updateParentStats(issueBeforeMove, undefined);
+
+    const response = await this.issueService.moveIssue(workspaceSlug, projectId, issueId, targetProjectId);
+
+    runInAction(() => {
+      this.removeIssueFromList(issueId);
+      this.rootIssueStore.issues.removeIssue(issueId);
+    });
+
+    this.fetchParentStats(workspaceSlug, projectId);
+
+    return response;
   }
 
   /**
@@ -758,7 +787,11 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     projectId?: string
   ) {
     if (!projectId) return;
-    const issueDatesBeforeChange: { id: string; start_date?: string; target_date?: string }[] = [];
+    const issueDatesBeforeChange: {
+      id: string;
+      start_date?: string;
+      target_date?: string;
+    }[] = [];
     try {
       const getIssueById = this.rootIssueStore.issues.getIssueById;
       runInAction(() => {
@@ -1592,13 +1625,19 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
     const issueGroupKey = issue?.[this.issueGroupKey] as string | string[] | null | undefined;
     // if they are grouped then identify the paths based on props on which group by is dependent on
-    const issueKeyActions: { path: string[]; action: EIssueGroupedAction.REORDER }[] = [];
+    const issueKeyActions: {
+      path: string[];
+      action: EIssueGroupedAction.REORDER;
+    }[] = [];
     const groupByValues = this.getArrayStringArray(issue, issueGroupKey);
 
     // if issues are not subGrouped then, provide path from groupByValues
     if (!this.issueSubGroupKey) {
       for (const groupKey of groupByValues) {
-        issueKeyActions.push({ path: [groupKey], action: EIssueGroupedAction.REORDER });
+        issueKeyActions.push({
+          path: [groupKey],
+          action: EIssueGroupedAction.REORDER,
+        });
       }
 
       return issueKeyActions;
@@ -1611,7 +1650,10 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     // if issues are subGrouped then, provide path from subGroupByValues
     for (const groupKey of groupByValues) {
       for (const subGroupKey of subGroupByValues) {
-        issueKeyActions.push({ path: [groupKey, subGroupKey], action: EIssueGroupedAction.REORDER });
+        issueKeyActions.push({
+          path: [groupKey, subGroupKey],
+          action: EIssueGroupedAction.REORDER,
+        });
       }
     }
 

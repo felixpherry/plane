@@ -22,9 +22,10 @@ import { useUserPermissions } from "@/hooks/store/user";
 // helper
 import { ArchiveIssueModal } from "../../archive-issue-modal";
 import { DeleteIssueModal } from "../../delete-issue-modal";
+import { MoveIssueModal } from "../../move-issue-modal";
 import { CreateUpdateIssueModal } from "../../issue-modal/modal";
 import type { IQuickActionProps } from "../list/list-view-types";
-import type { MenuItemFactoryProps } from "./helper";
+import type { MenuItemFactoryProps, TMoveIssueProject } from "./helper";
 import { useModuleIssueMenuItems } from "./helper";
 
 export const ModuleIssueQuickActions = observer(function ModuleIssueQuickActions(props: IQuickActionProps) {
@@ -45,6 +46,7 @@ export const ModuleIssueQuickActions = observer(function ModuleIssueQuickActions
   const [issueToEdit, setIssueToEdit] = useState<TIssue | undefined>(undefined);
   const [deleteIssueModal, setDeleteIssueModal] = useState(false);
   const [archiveIssueModal, setArchiveIssueModal] = useState(false);
+  const [moveIssueProject, setMoveIssueProject] = useState<TMoveIssueProject | undefined>(undefined);
   // router
   const { workspaceSlug, moduleId } = useParams();
   // store hooks
@@ -87,6 +89,7 @@ export const ModuleIssueQuickActions = observer(function ModuleIssueQuickActions
     setCreateUpdateIssueModal,
     setDeleteIssueModal,
     setArchiveIssueModal,
+    setMoveIssueProject,
     handleRemoveFromView,
     moduleId: moduleId?.toString(),
     handleDelete,
@@ -129,6 +132,13 @@ export const ModuleIssueQuickActions = observer(function ModuleIssueQuickActions
         isOpen={deleteIssueModal}
         handleClose={() => setDeleteIssueModal(false)}
         onSubmit={handleDelete}
+      />
+      <MoveIssueModal
+        data={issue}
+        isOpen={!!moveIssueProject}
+        targetProject={moveIssueProject}
+        handleClose={() => setMoveIssueProject(undefined)}
+        storeType={EIssuesStoreType.MODULE}
       />
       <CreateUpdateIssueModal
         isOpen={createUpdateIssueModal}

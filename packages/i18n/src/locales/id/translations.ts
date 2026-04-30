@@ -812,6 +812,7 @@ export default {
     actions: {
       edit: "Edit",
       make_a_copy: "Buat salinan",
+      move_to_different_project: "Move to different project",
       open_in_new_tab: "Buka di tab baru",
       copy_link: "Salin tautan",
       archive: "Arsip",

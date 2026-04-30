@@ -810,6 +810,7 @@ export default {
     actions: {
       edit: "Düzenle",
       make_a_copy: "Kopyasını oluştur",
+      move_to_different_project: "Move to different project",
       open_in_new_tab: "Yeni sekmede aç",
       copy_link: "Bağlantıyı kopyala",
       archive: "Arşivle",

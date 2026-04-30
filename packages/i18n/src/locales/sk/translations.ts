@@ -809,6 +809,7 @@ export default {
     actions: {
       edit: "Upraviť",
       make_a_copy: "Vytvoriť kópiu",
+      move_to_different_project: "Move to different project",
       open_in_new_tab: "Otvoriť na novej karte",
       copy_link: "Kopírovať odkaz",
       archive: "Archivovať",

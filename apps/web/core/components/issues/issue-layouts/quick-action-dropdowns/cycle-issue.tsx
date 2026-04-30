@@ -23,9 +23,10 @@ import { useUserPermissions } from "@/hooks/store/user";
 // helper
 import { ArchiveIssueModal } from "../../archive-issue-modal";
 import { DeleteIssueModal } from "../../delete-issue-modal";
+import { MoveIssueModal } from "../../move-issue-modal";
 import { CreateUpdateIssueModal } from "../../issue-modal/modal";
 import type { IQuickActionProps } from "../list/list-view-types";
-import type { MenuItemFactoryProps } from "./helper";
+import type { MenuItemFactoryProps, TMoveIssueProject } from "./helper";
 import { useCycleIssueMenuItems } from "./helper";
 
 export const CycleIssueQuickActions = observer(function CycleIssueQuickActions(props: IQuickActionProps) {
@@ -46,6 +47,7 @@ export const CycleIssueQuickActions = observer(function CycleIssueQuickActions(p
   const [issueToEdit, setIssueToEdit] = useState<TIssue | undefined>(undefined);
   const [deleteIssueModal, setDeleteIssueModal] = useState(false);
   const [archiveIssueModal, setArchiveIssueModal] = useState(false);
+  const [moveIssueProject, setMoveIssueProject] = useState<TMoveIssueProject | undefined>(undefined);
   // router
   const { workspaceSlug, cycleId } = useParams();
   const { issuesFilter } = useIssues(EIssuesStoreType.CYCLE);
@@ -87,6 +89,7 @@ export const CycleIssueQuickActions = observer(function CycleIssueQuickActions(p
     setCreateUpdateIssueModal,
     setDeleteIssueModal,
     setArchiveIssueModal,
+    setMoveIssueProject,
     handleRemoveFromView,
     cycleId: cycleId?.toString(),
     handleDelete,
@@ -130,6 +133,13 @@ export const CycleIssueQuickActions = observer(function CycleIssueQuickActions(p
         isOpen={deleteIssueModal}
         handleClose={() => setDeleteIssueModal(false)}
         onSubmit={handleDelete}
+      />
+      <MoveIssueModal
+        data={issue}
+        isOpen={!!moveIssueProject}
+        targetProject={moveIssueProject}
+        handleClose={() => setMoveIssueProject(undefined)}
+        storeType={EIssuesStoreType.CYCLE}
       />
       <CreateUpdateIssueModal
         isOpen={createUpdateIssueModal}

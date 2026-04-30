@@ -820,6 +820,7 @@ export default {
     actions: {
       edit: "Modifier",
       make_a_copy: "Faire une copie",
+      move_to_different_project: "Move to different project",
       open_in_new_tab: "Ouvrir dans un nouvel onglet",
       copy_link: "Copier le lien",
       archive: "Archiver",
