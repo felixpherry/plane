@@ -57,7 +57,6 @@ from plane.db.models import (
     Issue,
     IssueActivity,
     IssueAssignee,
-    IssueAttachment,
     IssueComment,
     IssueLabel,
     IssueLink,
@@ -67,7 +66,6 @@ from plane.db.models import (
     IssueSequence,
     IssueSubscriber,
     IssueVote,
-    ProjectIssueType,
     ProjectUserProperty,
     ModuleIssue,
     Project,
@@ -77,6 +75,8 @@ from plane.db.models import (
     WorkItemPageLink,
     Worklog,
 )
+from plane.db.models.issue import IssueAttachment
+from plane.db.models.issue_type import ProjectIssueType
 from plane.utils.filters import ComplexFilterBackend, IssueFilterSet
 from plane.utils.global_paginator import paginate
 from plane.utils.grouper import (
