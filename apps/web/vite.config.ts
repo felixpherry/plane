@@ -14,6 +14,8 @@ const viteEnv = Object.keys(process.env)
     return a;
   }, {});
 
+const devProxyTarget = process.env.VITE_DEV_PROXY_TARGET;
+
 export default defineConfig(() => ({
   define: {
     "process.env": JSON.stringify(viteEnv),
