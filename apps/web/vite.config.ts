@@ -14,6 +14,8 @@ const viteEnv = Object.keys(process.env)
     return a;
   }, {});
 
+const devProxyTarget = process.env.VITE_DEV_PROXY_TARGET;
+
 export default defineConfig(() => ({
   define: {
     "process.env": JSON.stringify(viteEnv),
@@ -33,6 +35,16 @@ export default defineConfig(() => ({
   },
   server: {
     host: "127.0.0.1",
+    ...(devProxyTarget
+      ? {
+          proxy: {
+            "/api": { target: devProxyTarget, changeOrigin: true },
+            "/auth": { target: devProxyTarget, changeOrigin: true },
+            "/static": { target: devProxyTarget, changeOrigin: true },
+            "/uploads": { target: devProxyTarget, changeOrigin: true },
+          },
+        }
+      : {}),
   },
   // No SSR-specific overrides needed; alias resolves to ESM build
 }));

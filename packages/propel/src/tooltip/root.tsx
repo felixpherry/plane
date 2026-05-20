@@ -34,7 +34,7 @@ export function Tooltip(props: ITooltipProps) {
     children,
     disabled = false,
     className = "",
-    openDelay = 200,
+    openDelay = 0,
     side = "bottom",
     align = "center",
     sideOffset = 10,
