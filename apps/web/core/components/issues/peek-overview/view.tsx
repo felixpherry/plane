@@ -17,6 +17,7 @@ import { cn } from "@plane/utils";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { getValueFromLocalStorage, setValueIntoLocalStorage } from "@/hooks/use-local-storage";
 import useKeypress from "@/hooks/use-keypress";
+import usePeekOverviewOutsideClickDetector from "@/hooks/use-peek-overview-outside-click";
 // local imports
 import type { TIssueOperations } from "../issue-detail";
 import { IssueActivity } from "../issue-detail/issue-activity";
@@ -112,6 +113,15 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
 
   const isAnyLocalModalOpen =
     isDeleteIssueModalOpen || isArchiveIssueModalOpen || isDuplicateIssueModalOpen || isEditIssueModalOpen;
+
+  usePeekOverviewOutsideClickDetector(issuePeekOverviewRef, () => {
+    const isAnyDropbarOpen = editorRef.current?.isAnyDropbarOpen();
+    if (!embedIssue) {
+      if (!isAnyModalOpen && !isAnyEpicModalOpen && !isAnyLocalModalOpen && !isAnyDropbarOpen) {
+        removeRoutePeekId();
+      }
+    }
+  }, ["main-sidebar"]);
 
   const handleKeyDown = () => {
     const editorImageFullScreenModalElement = document.querySelector(".editor-image-full-screen-modal");

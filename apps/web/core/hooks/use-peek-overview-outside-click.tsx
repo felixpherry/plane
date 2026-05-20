@@ -10,7 +10,6 @@ import { useEffect, useCallback } from "react";
 const usePeekOverviewOutsideClickDetector = (
   ref: React.RefObject<HTMLElement>,
   callback: () => void,
-  issueId: string,
   excludePreventionElementIds?: string[]
 ) => {
   const handleClick = useCallback(
@@ -32,15 +31,6 @@ const usePeekOverviewOutsideClickDetector = (
             return;
           }
         }
-        // check if the click target is the current issue element or its children
-        let targetElement: HTMLElement | null = event.target;
-        while (targetElement) {
-          if (targetElement.id === `issue-${issueId}`) {
-            // if the click target is the current issue element, return
-            return;
-          }
-          targetElement = targetElement.parentElement;
-        }
         const delayOutsideClickElement = event.target.closest("[data-delay-outside-click]");
         if (delayOutsideClickElement) {
           // if the click target is the closest element with attribute name data-delay-outside-click, delay the callback
@@ -53,7 +43,7 @@ const usePeekOverviewOutsideClickDetector = (
         callback();
       }
     },
-    [ref, callback, issueId, excludePreventionElementIds]
+    [ref, callback, excludePreventionElementIds]
   );
 
   useEffect(() => {
