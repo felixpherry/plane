@@ -8,7 +8,7 @@ import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TIdentifierTextProps, TIdentifierTextVariant, TIssueIdentifierSize } from "@plane/types";
 import { cn } from "@plane/utils";
-import { CopyCheckIcon, CopyIcon } from "lucide-react";
+import { CheckIcon, CopyIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const SIZE_MAP: Record<TIssueIdentifierSize, string> = {
@@ -105,7 +105,13 @@ export function IdentifierText(props: TIdentifierTextProps) {
         disabled={!enableClickToCopyIdentifier}
       >
         {identifier}
-        {isCopied ? <CopyCheckIcon className="size-3" /> : <CopyIcon className="size-3" />}
+        {enableClickToCopyIdentifier ? (
+          isCopied ? (
+            <CheckIcon className="size-3" />
+          ) : (
+            <CopyIcon className="size-3" />
+          )
+        ) : null}
       </button>
     </Tooltip>
   );
