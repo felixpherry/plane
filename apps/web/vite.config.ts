@@ -14,7 +14,7 @@ const viteEnv = Object.keys(process.env)
     return a;
   }, {});
 
-const devProxyTarget = process.env.VITE_DEV_PROXY_TARGET;
+const devProxyTarget = process.env.VITE_DEV_PROXY_TARGET || "http://10.110.100.48:8082";
 
 export default defineConfig(() => ({
   define: {
@@ -37,14 +37,19 @@ export default defineConfig(() => ({
     host: "127.0.0.1",
     proxy: {
       "/api": {
-        target: "http://10.110.100.48:8082",
+        target: devProxyTarget,
         changeOrigin: true,
         cookieDomainRewrite: "127.0.0.1",
       },
       "/auth": {
-        target: "http://10.110.100.48:8082",
+        target: devProxyTarget,
         changeOrigin: true,
         cookieDomainRewrite: "127.0.0.1",
+      },
+      "/live": {
+        target: devProxyTarget,
+        changeOrigin: true,
+        ws: true,
       },
     },
   },
