@@ -6,7 +6,7 @@
 
 // types
 import { API_BASE_URL } from "@plane/constants";
-import type { TDocumentPayload, TPage } from "@plane/types";
+import type { TDocumentPayload, TPage, TPageBacklink } from "@plane/types";
 // helpers
 // services
 import { APIService } from "@/services/api.service";
@@ -142,6 +142,14 @@ export class ProjectPageService extends APIService {
 
   async unlock(workspaceSlug: string, projectId: string, pageId: string): Promise<void> {
     return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/lock/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async fetchBacklinks(workspaceSlug: string, projectId: string, pageId: string): Promise<TPageBacklink[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/backlinks/`)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

@@ -3,7 +3,7 @@
 # See the LICENSE file for details.
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
 from plane.app.permissions import ROLE
@@ -74,6 +74,52 @@ def get_visible_work_item_page_links(user, workspace_slug, project_id, issue_id)
         .select_related("workspace", "project", "issue", "page")
         .prefetch_related("page__projects")
         .order_by("page__name", "created_at")
+    )
+
+
+def get_visible_page_backlinks(user, workspace_slug, project_id, page_id):
+    get_visible_project_pages(
+        user=user,
+        workspace_slug=workspace_slug,
+        project_id=project_id,
+    ).get(pk=page_id)
+
+    permission_subquery = (
+        Issue.issue_objects.filter(workspace__slug=workspace_slug, project_id=project_id, id=OuterRef("issue_id"))
+        .filter(
+            Q(
+                project__project_projectmember__member=user,
+                project__project_projectmember__is_active=True,
+                project__project_projectmember__role__gt=ROLE.GUEST.value,
+            )
+            | Q(
+                project__project_projectmember__member=user,
+                project__project_projectmember__is_active=True,
+                project__project_projectmember__role=ROLE.GUEST.value,
+                project__guest_view_all_features=True,
+            )
+            | Q(
+                project__project_projectmember__member=user,
+                project__project_projectmember__is_active=True,
+                project__project_projectmember__role=ROLE.GUEST.value,
+                project__guest_view_all_features=False,
+                created_by=user,
+            )
+        )
+        .values("id")
+    )
+
+    return (
+        WorkItemPageLink.objects.filter(
+            workspace__slug=workspace_slug,
+            project_id=project_id,
+            page_id=page_id,
+            deleted_at__isnull=True,
+            issue__deleted_at__isnull=True,
+        )
+        .filter(Exists(permission_subquery))
+        .select_related("workspace", "project", "issue", "issue__project")
+        .order_by("issue__sequence_id", "created_at")
     )
 
 

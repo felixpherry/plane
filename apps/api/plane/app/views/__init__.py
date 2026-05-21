@@ -156,7 +156,7 @@ from .issue.worklog import (
     TimerDiscardEndpoint,
     TimerHeartbeatEndpoint,
 )
-from .issue.page_link import WorkItemPageLinkEndpoint
+from .issue.page_link import PageBacklinkEndpoint, WorkItemPageLinkEndpoint
 
 from .issue.link import IssueLinkViewSet
 

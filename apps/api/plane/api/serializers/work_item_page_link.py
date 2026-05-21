@@ -5,7 +5,8 @@
 from rest_framework import serializers
 
 from .base import BaseSerializer
-from plane.db.models import Page, WorkItemPageLink
+from plane.db.models import Issue, Page, WorkItemPageLink
+from .project import ProjectLiteSerializer
 
 
 class WorkItemLinkedPageSerializer(BaseSerializer):
@@ -48,6 +49,33 @@ class WorkItemPageLinkSerializer(BaseSerializer):
             "page_detail",
             "created_by",
             "updated_by",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+        ]
+        read_only_fields = fields
+
+
+class PageBacklinkIssueSerializer(BaseSerializer):
+    project_detail = ProjectLiteSerializer(source="project", read_only=True)
+
+    class Meta:
+        model = Issue
+        fields = ["id", "name", "sequence_id", "project_id", "project_detail"]
+        read_only_fields = fields
+
+
+class PageBacklinkSerializer(BaseSerializer):
+    issue_detail = PageBacklinkIssueSerializer(source="issue", read_only=True)
+
+    class Meta:
+        model = WorkItemPageLink
+        fields = [
+            "id",
+            "workspace",
+            "project",
+            "issue",
+            "issue_detail",
             "created_at",
             "updated_at",
             "deleted_at",

@@ -75,6 +75,7 @@ from .worklog import (
     TimerStartSerializer,
 )
 from .work_item_page_link import (
+    PageBacklinkSerializer,
     WorkItemLinkedPageSerializer,
     WorkItemPageLinkSerializer,
     WorkItemPageLinkReplaceSerializer,

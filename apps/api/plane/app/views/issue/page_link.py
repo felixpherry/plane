@@ -6,13 +6,34 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import status
 from rest_framework.response import Response
 
-from plane.api.serializers import WorkItemPageLinkReplaceSerializer, WorkItemPageLinkSerializer
+from plane.api.serializers import PageBacklinkSerializer, WorkItemPageLinkReplaceSerializer, WorkItemPageLinkSerializer
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.views.base import BaseAPIView
 from plane.utils.work_item_page_links import (
+    get_visible_page_backlinks,
     get_visible_work_item_page_links,
     replace_visible_work_item_page_links,
 )
+
+
+class PageBacklinkEndpoint(BaseAPIView):
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    def get(self, request, slug, project_id, page_id):
+        try:
+            backlinks = get_visible_page_backlinks(
+                user=request.user,
+                workspace_slug=slug,
+                project_id=project_id,
+                page_id=page_id,
+            )
+        except ObjectDoesNotExist:
+            return Response(
+                {"error": "The requested resource does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = PageBacklinkSerializer(backlinks, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class WorkItemPageLinkEndpoint(BaseAPIView):

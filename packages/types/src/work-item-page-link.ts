@@ -5,6 +5,7 @@
  */
 
 import type { TPage } from "./page";
+import type { IProjectLite } from "./project";
 
 export type TWorkItemLinkedPage = Pick<
   TPage,
@@ -39,4 +40,23 @@ export type TWorkItemPageLink = {
 
 export type TWorkItemPageLinkReplacePayload = {
   page_ids: string[];
+};
+
+export type TPageBacklinkIssue = {
+  id: string;
+  name: string;
+  sequence_id: number;
+  project_id: string;
+  project_detail: IProjectLite;
+};
+
+export type TPageBacklink = {
+  id: string;
+  workspace: string;
+  project: string;
+  issue: string;
+  issue_detail: TPageBacklinkIssue;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 };

@@ -17,6 +17,7 @@ from plane.api.views import (
     IssueAttachmentDetailAPIEndpoint,
     WorkspaceIssueAPIEndpoint,
     IssueSearchEndpoint,
+    PageBacklinkAPIEndpoint,
     WorkItemPageLinkListAPIEndpoint,
 )
 
@@ -120,6 +121,11 @@ new_url_patterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/page-links/",
         WorkItemPageLinkListAPIEndpoint.as_view(http_method_names=["get", "put"]),
         name="work-item-page-links",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/backlinks/",
+        PageBacklinkAPIEndpoint.as_view(http_method_names=["get"]),
+        name="page-backlinks",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/comments/",

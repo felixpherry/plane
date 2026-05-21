@@ -69,4 +69,4 @@ from .custom_field import (
     CustomFieldValueListCreateAPIEndpoint,
     CustomFieldValueDetailAPIEndpoint,
 )
-from .work_item_page_link import WorkItemPageLinkListAPIEndpoint
+from .work_item_page_link import PageBacklinkAPIEndpoint, WorkItemPageLinkListAPIEndpoint
