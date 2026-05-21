@@ -270,7 +270,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
             workspaceSlug={workspaceSlug}
             projectId={projectId}
             pageId={pageId}
-            className={cn(blockWidthClassName, "pb-6")}
+            className={cn(blockWidthClassName)}
           />
           <CollaborativeDocumentEditorWithRef
             editable={isContentEditable}
