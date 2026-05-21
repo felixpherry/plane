@@ -266,6 +266,12 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
               <PageEditorHeaderRoot page={page} projectId={projectId} />
             </div>
           </div>
+          <PageBacklinks
+            workspaceSlug={workspaceSlug}
+            projectId={projectId}
+            pageId={pageId}
+            className={cn(blockWidthClassName, "pb-6")}
+          />
           <CollaborativeDocumentEditorWithRef
             editable={isContentEditable}
             id={pageId}
@@ -297,12 +303,6 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
             onAssetChange={updateAssetsList}
             extendedEditorProps={extendedEditorProps}
             isFetchingFallbackBinary={isFetchingFallbackBinary}
-          />
-          <PageBacklinks
-            workspaceSlug={workspaceSlug}
-            projectId={projectId}
-            pageId={pageId}
-            className={cn(blockWidthClassName, "px-page-x pb-20")}
           />
         </div>
       </div>
