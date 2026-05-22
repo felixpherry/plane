@@ -44,9 +44,7 @@ interface IIssueView {
 
 const DEFAULT_PEEK_MODE: TPeekModes = "side-peek";
 const PEEK_MODE_OPTIONS: TPeekModes[] = ["side-peek", "modal", "full-screen"];
-const ISSUE_PEEK_VIEW_LAYOUT_STORAGE_KEY_PREFIX = "issue_peek_view_layout";
-
-const getIssuePeekViewLayoutStorageKey = (issueId: string) => `${ISSUE_PEEK_VIEW_LAYOUT_STORAGE_KEY_PREFIX}:${issueId}`;
+const ISSUE_PEEK_VIEW_LAYOUT_STORAGE_KEY = "issue_peek_view_layout";
 
 const getValidatedPeekMode = (peekMode: unknown): TPeekModes =>
   PEEK_MODE_OPTIONS.includes(peekMode as TPeekModes) ? (peekMode as TPeekModes) : DEFAULT_PEEK_MODE;
@@ -64,12 +62,11 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
     embedRemoveCurrentNotification,
     issueOperations,
   } = props;
-  const issuePeekViewLayoutStorageKey = getIssuePeekViewLayoutStorageKey(issueId);
   // states
   const [peekMode, setPeekMode] = useState<TPeekModes>(() =>
     embedIssue
       ? DEFAULT_PEEK_MODE
-      : getValidatedPeekMode(getValueFromLocalStorage(issuePeekViewLayoutStorageKey, DEFAULT_PEEK_MODE))
+      : getValidatedPeekMode(getValueFromLocalStorage(ISSUE_PEEK_VIEW_LAYOUT_STORAGE_KEY, DEFAULT_PEEK_MODE))
   );
   const [isSubmitting, setIsSubmitting] = useState<TNameDescriptionLoader>("saved");
   const [isDeleteIssueModalOpen, setIsDeleteIssueModalOpen] = useState(false);
@@ -100,16 +97,16 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
 
   const handlePeekModeChange = (value: TPeekModes) => {
     setPeekMode(value);
-    if (!embedIssue) setValueIntoLocalStorage(issuePeekViewLayoutStorageKey, value);
+    if (!embedIssue) setValueIntoLocalStorage(ISSUE_PEEK_VIEW_LAYOUT_STORAGE_KEY, value);
   };
 
   useEffect(() => {
     setPeekMode(
       embedIssue
         ? DEFAULT_PEEK_MODE
-        : getValidatedPeekMode(getValueFromLocalStorage(issuePeekViewLayoutStorageKey, DEFAULT_PEEK_MODE))
+        : getValidatedPeekMode(getValueFromLocalStorage(ISSUE_PEEK_VIEW_LAYOUT_STORAGE_KEY, DEFAULT_PEEK_MODE))
     );
-  }, [embedIssue, issuePeekViewLayoutStorageKey]);
+  }, [embedIssue]);
 
   const isAnyLocalModalOpen =
     isDeleteIssueModalOpen || isArchiveIssueModalOpen || isDuplicateIssueModalOpen || isEditIssueModalOpen;
