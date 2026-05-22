@@ -35,6 +35,9 @@ type Props = {
   showAllBlocks?: boolean;
   selectionHelpers?: TSelectionHelper;
   isEpic?: boolean;
+  nestingLevelByIssueId?: Record<string, number>;
+  expandedIssueIds?: Set<string>;
+  onToggleSubIssues?: (issueId: string, projectId: string, nestingLevel: number) => void;
 };
 
 export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Props) {
@@ -49,6 +52,9 @@ export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Prop
     showAllBlocks = false,
     selectionHelpers,
     isEpic = false,
+    nestingLevelByIssueId = {},
+    expandedIssueIds,
+    onToggleSubIssues,
   } = props;
 
   const { getBlockById } = useTimeLineChart(GANTT_TIMELINE_TYPE.ISSUE);
@@ -109,6 +115,9 @@ export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Prop
                       isDragging={isDragging}
                       selectionHelpers={selectionHelpers}
                       isEpic={isEpic}
+                      nestingLevel={nestingLevelByIssueId[block.id] ?? 0}
+                      isExpanded={expandedIssueIds?.has(block.id) ?? false}
+                      onToggleSubIssues={onToggleSubIssues}
                     />
                   )}
                 </GanttDnDHOC>

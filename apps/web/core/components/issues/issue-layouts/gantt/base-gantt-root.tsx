@@ -5,7 +5,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
@@ -20,6 +20,7 @@ import { TimeLineTypeContext } from "@/components/gantt-chart/contexts";
 import { GanttChartRoot } from "@/components/gantt-chart/root";
 import { IssueGanttSidebar } from "@/components/gantt-chart/sidebar/issues/sidebar";
 // hooks
+import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
@@ -63,8 +64,14 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
 
   const storeType = useIssueStoreType() as GanttStoreType;
   const { issues, issuesFilter } = useIssues(storeType);
+  const {
+    issue: { getIssueById },
+    subIssues: subIssuesStore,
+  } = useIssueDetail();
   const { fetchIssues, fetchNextIssues, updateIssue, quickAddIssue } = useIssuesActions(storeType);
   const { initGantt } = useTimeLineChart(GANTT_TIMELINE_TYPE.ISSUE);
+  // states
+  const [expandedIssueIds, setExpandedIssueIds] = useState<Set<string>>(new Set());
   // store hooks
   const { allowPermissions } = useUserPermissions();
 
@@ -99,6 +106,60 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
 
   const issuesIds = (issues.groupedIssueIds?.[ALL_ISSUES] as string[]) ?? [];
   const nextPageResults = issues.getPaginationData(undefined, undefined)?.nextPageResults;
+
+  const getDescendantIssueIds = useCallback(
+    (issueId: string): string[] => {
+      const childIds = subIssuesStore.subIssuesByIssueId(issueId) ?? [];
+      return childIds.flatMap((childId) => [childId, ...getDescendantIssueIds(childId)]);
+    },
+    [subIssuesStore]
+  );
+
+  const handleToggleSubIssues = useCallback(
+    (issueId: string, projectId: string, nestingLevel: number) => {
+      if (!workspaceSlug || nestingLevel >= 3) return;
+
+      if (expandedIssueIds.has(issueId)) {
+        setExpandedIssueIds((currentExpandedIssueIds) => {
+          const nextExpandedIssueIds = new Set(currentExpandedIssueIds);
+          nextExpandedIssueIds.delete(issueId);
+          getDescendantIssueIds(issueId).forEach((descendantId) => nextExpandedIssueIds.delete(descendantId));
+          return nextExpandedIssueIds;
+        });
+        return;
+      }
+
+      setExpandedIssueIds((currentExpandedIssueIds) => new Set(currentExpandedIssueIds).add(issueId));
+      if (!subIssuesStore.subIssuesByIssueId(issueId)) {
+        subIssuesStore.fetchSubIssues(workspaceSlug.toString(), projectId, issueId);
+      }
+    },
+    [expandedIssueIds, getDescendantIssueIds, subIssuesStore, workspaceSlug]
+  );
+
+  const nestedIssueIds = new Set<string>();
+  if (!isEpic) {
+    expandedIssueIds.forEach((issueId) => {
+      getDescendantIssueIds(issueId).forEach((descendantId) => nestedIssueIds.add(descendantId));
+    });
+  }
+
+  const nestingLevelByIssueId: Record<string, number> = {};
+  const flattenIssueIds = (issueIds: string[], nestingLevel: number): string[] =>
+    issueIds.flatMap((issueId) => {
+      nestingLevelByIssueId[issueId] = nestingLevel;
+      const issueDetail = getIssueById(issueId);
+      const childIds =
+        expandedIssueIds.has(issueId) && !isEpic ? subIssuesStore.subIssuesByIssueId(issueId) : undefined;
+
+      if (!issueDetail || !childIds?.length || nestingLevel >= 3) return [issueId];
+
+      return [issueId, ...flattenIssueIds(childIds, nestingLevel + 1)];
+    });
+  const visibleIssueIds = flattenIssueIds(
+    issuesIds.filter((issueId) => !nestedIssueIds.has(issueId)),
+    0
+  );
 
   const { enableIssueCreation } = issues?.viewFlags || {};
 
@@ -157,14 +218,23 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
             border={false}
             title={isEpic ? t("epic.label", { count: 2 }) : t("issue.label", { count: 2 })}
             loaderTitle={isEpic ? t("epic.label", { count: 2 }) : t("issue.label", { count: 2 })}
-            blockIds={issuesIds}
+            blockIds={visibleIssueIds}
             blockUpdateHandler={updateIssueBlockStructure}
             blockToRender={(data: TIssue) => <IssueGanttBlock issueId={data.id} isEpic={isEpic} />}
-            sidebarToRender={(props) => <IssueGanttSidebar {...props} showAllBlocks isEpic={isEpic} />}
+            sidebarToRender={(props) => (
+              <IssueGanttSidebar
+                {...props}
+                showAllBlocks
+                isEpic={isEpic}
+                nestingLevelByIssueId={nestingLevelByIssueId}
+                expandedIssueIds={expandedIssueIds}
+                onToggleSubIssues={handleToggleSubIssues}
+              />
+            )}
             enableBlockLeftResize={isAllowed}
             enableBlockRightResize={isAllowed}
             enableBlockMove={isAllowed}
-            enableReorder={appliedDisplayFilters?.order_by === "sort_order" && isAllowed}
+            enableReorder={expandedIssueIds.size === 0 && appliedDisplayFilters?.order_by === "sort_order" && isAllowed}
             enableAddBlock={isAllowed}
             enableSelection={isBulkOperationsEnabled && isAllowed}
             quickAdd={quickAdd}
