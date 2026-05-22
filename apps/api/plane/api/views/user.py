@@ -8,11 +8,25 @@ from rest_framework.response import Response
 from drf_spectacular.utils import OpenApiResponse
 
 # Module imports
-from plane.api.serializers import UserLiteSerializer
+from plane.api.serializers import UserLiteSerializer, WorkspaceLiteSerializer
 from plane.api.views.base import BaseAPIView
-from plane.db.models import User
+from plane.db.models import User, Workspace
 from plane.utils.openapi.decorators import user_docs
 from plane.utils.openapi import USER_EXAMPLE
+
+
+class UserWorkspacesEndpoint(BaseAPIView):
+    serializer_class = WorkspaceLiteSerializer
+    model = Workspace
+
+    def get(self, request):
+        """List workspaces accessible to current API-token user."""
+        workspaces = Workspace.objects.filter(
+            workspace_member__member=request.user,
+            workspace_member__is_active=True,
+        ).distinct()
+        serializer = WorkspaceLiteSerializer(workspaces, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserEndpoint(BaseAPIView):
