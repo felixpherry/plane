@@ -71,6 +71,7 @@ from plane.db.models import (
     ProjectMember,
     CycleIssue,
     Workspace,
+    IssueRelation,
 )
 from plane.settings.storage import S3Storage
 from plane.bgtasks.storage_metadata_task import get_asset_object_metadata
@@ -78,6 +79,7 @@ from .base import BaseAPIView
 from plane.utils.host import base_host
 from plane.bgtasks.webhook_task import model_activity
 from plane.app.permissions import ROLE
+from plane.utils.issue_relation_mapper import get_actual_relation
 from plane.utils.openapi import (
     work_item_docs,
     label_docs,
@@ -800,6 +802,98 @@ class IssueDetailAPIEndpoint(BaseAPIView):
             epoch=int(timezone.now().timestamp()),
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class IssueRelationAPIEndpoint(BaseAPIView):
+    """Work item relation list and create endpoint for API tokens."""
+
+    permission_classes = [ProjectEntityPermission]
+
+    def get(self, request, slug, project_id, issue_id):
+        issue_relations = IssueRelation.objects.filter(
+            Q(issue_id=issue_id) | Q(related_issue_id=issue_id),
+            workspace__slug=slug,
+            project_id=project_id,
+        )
+
+        blocking_ids = issue_relations.filter(
+            relation_type="blocked_by", related_issue_id=issue_id
+        ).values_list("issue_id", flat=True)
+        blocked_by_ids = issue_relations.filter(
+            relation_type="blocked_by", issue_id=issue_id
+        ).values_list("related_issue_id", flat=True)
+        duplicate_ids = issue_relations.filter(
+            relation_type="duplicate", issue_id=issue_id
+        ).values_list("related_issue_id", flat=True)
+        duplicate_related_ids = issue_relations.filter(
+            relation_type="duplicate", related_issue_id=issue_id
+        ).values_list("issue_id", flat=True)
+        relates_to_ids = issue_relations.filter(
+            relation_type="relates_to", issue_id=issue_id
+        ).values_list("related_issue_id", flat=True)
+        relates_to_related_ids = issue_relations.filter(
+            relation_type="relates_to", related_issue_id=issue_id
+        ).values_list("issue_id", flat=True)
+
+        issues = Issue.issue_objects.filter(workspace__slug=slug, project_id=project_id).select_related(
+            "project", "workspace", "state", "parent"
+        )
+
+        return Response(
+            {
+                "blocking": IssueSerializer(issues.filter(pk__in=blocking_ids), many=True).data,
+                "blocked_by": IssueSerializer(issues.filter(pk__in=blocked_by_ids), many=True).data,
+                "duplicate": IssueSerializer(
+                    issues.filter(pk__in=duplicate_ids) | issues.filter(pk__in=duplicate_related_ids), many=True
+                ).data,
+                "relates_to": IssueSerializer(
+                    issues.filter(pk__in=relates_to_ids) | issues.filter(pk__in=relates_to_related_ids), many=True
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def post(self, request, slug, project_id, issue_id):
+        relation_type = request.data.get("relation_type")
+        if relation_type is None:
+            return Response(
+                {"message": "Issue relation type is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        issues = request.data.get("issues", [])
+        project = Project.objects.get(pk=project_id, workspace__slug=slug)
+        issue_relations = IssueRelation.objects.bulk_create(
+            [
+                IssueRelation(
+                    issue_id=(issue if relation_type in ["blocking"] else issue_id),
+                    related_issue_id=(issue_id if relation_type in ["blocking"] else issue),
+                    relation_type=get_actual_relation(relation_type),
+                    project_id=project_id,
+                    workspace_id=project.workspace_id,
+                    created_by=request.user,
+                    updated_by=request.user,
+                )
+                for issue in issues
+            ],
+            batch_size=10,
+            ignore_conflicts=True,
+        )
+        issue_activity.delay(
+            type="issue_relation.activity.created",
+            requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
+            actor_id=str(request.user.id),
+            issue_id=str(issue_id),
+            project_id=str(project_id),
+            current_instance=None,
+            epoch=int(timezone.now().timestamp()),
+            notification=True,
+            origin=base_host(request=request, is_app=True),
+        )
+        return Response(
+            {"created": len(issue_relations)},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class LabelListCreateAPIEndpoint(BaseAPIView):
