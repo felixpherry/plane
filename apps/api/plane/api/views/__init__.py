@@ -64,6 +64,8 @@ from .invite import WorkspaceInvitationsViewset
 
 from .sticky import StickyViewSet
 
+from .page import PageListCreateAPIEndpoint
+
 from .custom_field import (
     CustomFieldListCreateAPIEndpoint,
     CustomFieldDetailAPIEndpoint,
