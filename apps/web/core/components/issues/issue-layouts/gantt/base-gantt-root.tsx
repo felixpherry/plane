@@ -9,11 +9,11 @@ import React, { useCallback, useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import { ALL_ISSUES, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { ALL_ISSUES, EIssueFilterType, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { EIssuesStoreType, IBlockUpdateData, TIssue, TIssueKanbanFilters } from "@plane/types";
-import { EIssueFilterType, EIssueLayoutTypes, GANTT_TIMELINE_TYPE } from "@plane/types";
+import { EIssueLayoutTypes, GANTT_TIMELINE_TYPE } from "@plane/types";
 import { renderFormattedPayloadDate } from "@plane/utils";
 // components
 import { TimeLineTypeContext } from "@/components/gantt-chart/contexts";
@@ -276,7 +276,9 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
               enableBlockLeftResize={isAllowed}
               enableBlockRightResize={isAllowed}
               enableBlockMove={isAllowed}
-              enableReorder={expandedIssueIds.size === 0 && appliedDisplayFilters?.order_by === "sort_order" && isAllowed}
+              enableReorder={
+                expandedIssueIds.size === 0 && appliedDisplayFilters?.order_by === "sort_order" && isAllowed
+              }
               enableAddBlock={isAllowed}
               enableSelection={isBulkOperationsEnabled && isAllowed}
               quickAdd={quickAdd}

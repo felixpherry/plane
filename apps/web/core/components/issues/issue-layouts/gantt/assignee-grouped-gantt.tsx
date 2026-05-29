@@ -1,5 +1,5 @@
 // eslint-disable
-import type { ReactElement, RefObject } from "react";
+import type { RefObject } from "react";
 import { useCallback, useEffect, useMemo } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -7,7 +7,7 @@ import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { GANTT_TIMELINE_TYPE } from "@plane/types";
-import type { IBlockUpdateData, IBlockUpdateDependencyData, TGroupedIssues } from "@plane/types";
+import type { IBlockUpdateData, IBlockUpdateDependencyData, IGroupByColumn, TGroupedIssues } from "@plane/types";
 import { CollapsibleButton, Row } from "@plane/ui";
 import { cn } from "@plane/utils";
 import RenderIfVisible from "@/components/core/render-if-visible-HOC";
@@ -23,6 +23,7 @@ import { useIssuesActions } from "@/hooks/use-issues-actions";
 import { useTimeLineChart } from "@/hooks/use-timeline-chart";
 import type { GanttStoreType } from "./base-gantt-root";
 import {
+  type TGroupedGanttRowData,
   buildGroupedGanttRows,
   isGroupedGanttGroupRowData,
   isGroupedGanttIssueRowData,
@@ -30,7 +31,7 @@ import {
 
 type Props = {
   storeType: GanttStoreType;
-  groupColumns: { id: string; name: string; icon?: ReactElement }[];
+  groupColumns: IGroupByColumn[];
   collapsedGroupIds: Set<string>;
   onToggleGroup: (groupId: string) => void;
   sidebarWidth: number;
@@ -38,7 +39,7 @@ type Props = {
 };
 
 type TGroupedTimeLineStore = ReturnType<typeof useTimeLineChart> & {
-  setGroupedBlockDataMap: (data: Record<string, Record<string, unknown>>) => void;
+  setGroupedBlockDataMap: (data: Record<string, TGroupedGanttRowData>) => void;
 };
 
 const GroupedIssuesSidebar = observer(function GroupedIssuesSidebar(props: {
@@ -67,13 +68,22 @@ const GroupedIssuesSidebar = observer(function GroupedIssuesSidebar(props: {
             shouldRecordHeights={false}
             placeholderChildren={<GanttLayoutListItemLoader />}
           >
-            <GanttDnDHOC id={blockId} isLastChild={index === blockIds.length - 1} isDragEnabled={false} onDrop={() => undefined}>
+            <GanttDnDHOC
+              id={blockId}
+              isLastChild={index === blockIds.length - 1}
+              isDragEnabled={false}
+              onDrop={() => undefined}
+            >
               {() => {
                 if (isGroupedGanttGroupRowData(block.data)) {
                   const isOpen = !collapsedGroupIds.has(block.data.groupId);
 
                   return (
-                    <button type="button" className="block w-full text-left" onClick={() => onToggleGroup(block.data.groupId)}>
+                    <button
+                      type="button"
+                      className="block w-full text-left"
+                      onClick={() => onToggleGroup(block.data.groupId)}
+                    >
                       <CollapsibleButton
                         isOpen={isOpen}
                         title={
@@ -93,22 +103,32 @@ const GroupedIssuesSidebar = observer(function GroupedIssuesSidebar(props: {
                 if (!isGroupedGanttIssueRowData(block.data)) return null;
 
                 const duration =
-                  block.start_date && block.target_date ? getNumberOfDaysFromPosition(block.position?.width) : undefined;
+                  block.start_date && block.target_date
+                    ? getNumberOfDaysFromPosition(block.position?.width)
+                    : undefined;
                 const isHovered = isBlockActive(block.id);
 
                 return (
-                  <div onMouseEnter={() => updateActiveBlockId(block.id)} onMouseLeave={() => updateActiveBlockId(null)}>
+                  <div
+                    onMouseEnter={() => updateActiveBlockId(block.id)}
+                    onMouseLeave={() => updateActiveBlockId(null)}
+                  >
                     <Row
-                      className={cn("group flex w-full items-center gap-2 bg-layer-transparent pr-4 hover:bg-layer-transparent-hover", {
-                        "bg-layer-transparent-hover": isHovered,
-                      })}
+                      className={cn(
+                        "group flex w-full items-center gap-2 bg-layer-transparent pr-4 hover:bg-layer-transparent-hover",
+                        {
+                          "bg-layer-transparent-hover": isHovered,
+                        }
+                      )}
                       style={{ height: `${BLOCK_HEIGHT}px` }}
                     >
                       <div className="flex min-w-0 flex-grow items-center justify-between gap-2 truncate pl-4">
                         <div className="min-w-0 flex-grow truncate">
                           <IssueGanttSidebarBlock issueId={block.data.issueId} rowId={block.data.rowId} />
                         </div>
-                        {duration ? <span className="flex-shrink-0 text-13 text-secondary">{duration} days</span> : null}
+                        {duration ? (
+                          <span className="flex-shrink-0 text-13 text-secondary">{duration} days</span>
+                        ) : null}
                       </div>
                     </Row>
                   </div>
@@ -149,7 +169,7 @@ export const AssigneeGroupedGantt = observer(function AssigneeGroupedGantt(props
   const rowDataMap = useMemo(() => Object.fromEntries(rows.map((row) => [row.rowId, row])), [rows]);
 
   useEffect(() => {
-    timelineStore.setGroupedBlockDataMap(rowDataMap as Record<string, Record<string, unknown>>);
+    timelineStore.setGroupedBlockDataMap(rowDataMap);
   }, [rowDataMap, timelineStore]);
 
   const isAllowed = allowPermissions([EUserPermissions.ADMIN, EUserPermissions.MEMBER], EUserPermissionsLevel.PROJECT);
@@ -206,11 +226,7 @@ export const AssigneeGroupedGantt = observer(function AssigneeGroupedGantt(props
         isGroupedGanttIssueRowData(data) ? <IssueGanttBlock issueId={data.issueId} rowId={data.rowId} /> : null
       }
       sidebarToRender={(sidebarProps: { blockIds: string[]; ganttContainerRef: RefObject<HTMLDivElement> }) => (
-        <GroupedIssuesSidebar
-          {...sidebarProps}
-          collapsedGroupIds={collapsedGroupIds}
-          onToggleGroup={onToggleGroup}
-        />
+        <GroupedIssuesSidebar {...sidebarProps} collapsedGroupIds={collapsedGroupIds} onToggleGroup={onToggleGroup} />
       )}
       enableBlockLeftResize={(blockId: string) => isAllowed && rowDataMap[blockId]?.rowType === "issue"}
       enableBlockRightResize={(blockId: string) => isAllowed && rowDataMap[blockId]?.rowType === "issue"}
