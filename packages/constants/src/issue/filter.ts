@@ -267,6 +267,7 @@ export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
       gantt_chart: {
         display_properties: ["key", "issue_type"],
         display_filters: {
+          group_by: ["assignees", null],
           order_by: ["sort_order", "-created_at", "-updated_at", "start_date", "-priority"],
           type: ["active", "backlog"],
         },
