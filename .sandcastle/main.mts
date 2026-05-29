@@ -24,7 +24,7 @@ async function main() {
         onSandboxReady: [
           {
             command:
-              'corepack enable && pnpm install --frozen-lockfile && mkdir -p /home/agent/.pi/agent && cp /home/agent/pi-auth-host.json /home/agent/.pi/agent/auth.json && if [ -n "$PLANE_API_TOKEN" ]; then plane login --token "$PLANE_API_TOKEN" --workspace it-payroll-2026; else echo "PLANE_API_TOKEN not set; plane commands may fail"; fi',
+              'COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack enable && COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm install --frozen-lockfile && mkdir -p /home/agent/.pi/agent && cp /home/agent/pi-auth-host.json /home/agent/.pi/agent/auth.json && if [ -n "$PLANE_API_TOKEN" ]; then plane login --token "$PLANE_API_TOKEN" --workspace it-payroll-2026; else echo "PLANE_API_TOKEN not set; plane commands may fail"; fi',
             timeoutMs: 300000,
           },
         ],

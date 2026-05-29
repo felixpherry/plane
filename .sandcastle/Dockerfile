@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
   && rm -rf /var/lib/apt/lists/*
 
 RUN corepack enable
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 ARG AGENT_UID=1000
 ARG AGENT_GID=1000
