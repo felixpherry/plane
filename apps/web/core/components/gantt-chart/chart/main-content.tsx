@@ -4,48 +4,39 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef } from 'react';
-import { combine } from '@atlaskit/pragmatic-drag-and-drop/combine';
-import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/element';
-import { observer } from 'mobx-react';
+import { useEffect, useRef } from "react";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
+import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
+import { observer } from "mobx-react";
 import type {
   ChartDataType,
   IBlockUpdateData,
   IBlockUpdateDependencyData,
   IGanttBlock,
   TGanttViews,
-} from '@plane/types';
-import { cn, getDate } from '@plane/utils';
+} from "@plane/types";
+import { cn, getDate } from "@plane/utils";
 // components
-import { MultipleSelectGroup } from '@/components/core/multiple-select';
-import {
-  GanttChartSidebar,
-  MonthChartView,
-  QuarterChartView,
-  WeekChartView,
-} from '@/components/gantt-chart';
+import { MultipleSelectGroup } from "@/components/core/multiple-select";
+import { GanttChartSidebar, MonthChartView, QuarterChartView, WeekChartView } from "@/components/gantt-chart";
 // helpers
 // hooks
-import { useTimeLineChartStore } from '@/hooks/use-timeline-chart';
+import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 // plane web components
 import {
   TimelineDependencyPaths,
   TimelineDraggablePath,
   GanttAdditionalLayers,
-} from '@/plane-web/components/gantt-chart';
-import { GanttChartRowList } from '@/plane-web/components/gantt-chart/blocks/block-row-list';
-import { GanttChartBlocksList } from '@/plane-web/components/gantt-chart/blocks/blocks-list';
-import { IssueBulkOperationsRoot } from '@/plane-web/components/issues/bulk-operations';
+} from "@/plane-web/components/gantt-chart";
+import { GanttChartRowList } from "@/plane-web/components/gantt-chart/blocks/block-row-list";
+import { GanttChartBlocksList } from "@/plane-web/components/gantt-chart/blocks/blocks-list";
+import { IssueBulkOperationsRoot } from "@/plane-web/components/issues/bulk-operations";
 // plane web hooks
-import { useBulkOperationStatus } from '@/plane-web/hooks/use-bulk-operation-status';
+import { useBulkOperationStatus } from "@/plane-web/hooks/use-bulk-operation-status";
 //
-import {
-  DEFAULT_BLOCK_WIDTH,
-  GANTT_SELECT_GROUP,
-  HEADER_HEIGHT,
-} from '../constants';
-import { getItemPositionWidth } from '../views';
-import { TimelineDragHelper } from './timeline-drag-helper';
+import { DEFAULT_BLOCK_WIDTH, GANTT_SELECT_GROUP, HEADER_HEIGHT } from "../constants";
+import { getItemPositionWidth } from "../views";
+import { TimelineDragHelper } from "./timeline-drag-helper";
 
 type Props = {
   blockIds: string[];
@@ -60,6 +51,7 @@ type Props = {
   enableBlockRightResize: boolean | ((blockId: string) => boolean);
   enableReorder: boolean | ((blockId: string) => boolean);
   enableSelection: boolean | ((blockId: string) => boolean);
+  selectionEntityIds?: string[];
   enableAddBlock: boolean | ((blockId: string) => boolean);
   enableDependency: boolean | ((blockId: string) => boolean);
   itemsContainerWidth: number;
@@ -67,17 +59,15 @@ type Props = {
   sidebarToRender: (props: any) => React.ReactNode;
   title: string;
   updateCurrentViewRenderPayload: (
-    direction: 'left' | 'right',
+    direction: "left" | "right",
     currentView: TGanttViews,
-    targetDate?: Date,
+    targetDate?: Date
   ) => ChartDataType | undefined;
   quickAdd?: React.ReactNode | undefined;
   isEpic?: boolean;
 };
 
-export const GanttChartMainContent = observer(function GanttChartMainContent(
-  props: Props,
-) {
+export const GanttChartMainContent = observer(function GanttChartMainContent(props: Props) {
   const {
     blockIds,
     loadMoreBlocks,
@@ -90,6 +80,7 @@ export const GanttChartMainContent = observer(function GanttChartMainContent(
     enableReorder,
     enableAddBlock,
     enableSelection,
+    selectionEntityIds,
     enableDependency,
     itemsContainerWidth,
     showAllBlocks,
@@ -117,10 +108,9 @@ export const GanttChartMainContent = observer(function GanttChartMainContent(
     return combine(
       autoScrollForElements({
         element,
-        getAllowedAxis: () => 'vertical',
-        canScroll: ({ source }) =>
-          source.data.dragInstanceId === 'GANTT_REORDER',
-      }),
+        getAllowedAxis: () => "vertical",
+        canScroll: ({ source }) => source.data.dragInstanceId === "GANTT_REORDER",
+      })
     );
   }, []);
 
@@ -130,54 +120,35 @@ export const GanttChartMainContent = observer(function GanttChartMainContent(
 
     const approxRangeLeft = scrollLeft;
     const approxRangeRight = scrollWidth - (scrollLeft + clientWidth);
-    const calculatedRangeRight =
-      itemsContainerWidth - (scrollLeft + clientWidth);
+    const calculatedRangeRight = itemsContainerWidth - (scrollLeft + clientWidth);
 
     if (approxRangeRight < clientWidth || calculatedRangeRight < clientWidth) {
-      updateCurrentViewRenderPayload('right', currentView);
+      updateCurrentViewRenderPayload("right", currentView);
     }
     if (approxRangeLeft < clientWidth) {
-      updateCurrentViewRenderPayload('left', currentView);
+      updateCurrentViewRenderPayload("left", currentView);
     }
   };
 
   const handleScrollToBlock = (block: IGanttBlock) => {
     const scrollContainer = ganttContainerRef.current as HTMLDivElement;
     const scrollToEndDate = !block.start_date && block.target_date;
-    const scrollToDate = block.start_date
-      ? getDate(block.start_date)
-      : getDate(block.target_date);
+    const scrollToDate = block.start_date ? getDate(block.start_date) : getDate(block.target_date);
     let chartData;
 
     if (!scrollContainer || !currentViewData || !scrollToDate) return;
 
     if (scrollToDate.getTime() < currentViewData.data.startDate.getTime()) {
-      chartData = updateCurrentViewRenderPayload(
-        'left',
-        currentView,
-        scrollToDate,
-      );
-    } else if (
-      scrollToDate.getTime() > currentViewData.data.endDate.getTime()
-    ) {
-      chartData = updateCurrentViewRenderPayload(
-        'right',
-        currentView,
-        scrollToDate,
-      );
+      chartData = updateCurrentViewRenderPayload("left", currentView, scrollToDate);
+    } else if (scrollToDate.getTime() > currentViewData.data.endDate.getTime()) {
+      chartData = updateCurrentViewRenderPayload("right", currentView, scrollToDate);
     }
     // update container's scroll position to the block's position
-    const updatedPosition = getItemPositionWidth(
-      chartData ?? currentViewData,
-      block,
-    );
+    const updatedPosition = getItemPositionWidth(chartData ?? currentViewData, block);
 
     setTimeout(() => {
       if (updatedPosition)
-        scrollContainer.scrollLeft =
-          updatedPosition.marginLeft -
-          4 -
-          (scrollToEndDate ? DEFAULT_BLOCK_WIDTH : 0);
+        scrollContainer.scrollLeft = updatedPosition.marginLeft - 4 - (scrollToEndDate ? DEFAULT_BLOCK_WIDTH : 0);
     });
   };
 
@@ -198,7 +169,7 @@ export const GanttChartMainContent = observer(function GanttChartMainContent(
       <MultipleSelectGroup
         containerRef={ganttContainerRef}
         entities={{
-          [GANTT_SELECT_GROUP]: blockIds ?? [],
+          [GANTT_SELECT_GROUP]: selectionEntityIds ?? blockIds ?? [],
         }}
         disabled={!isBulkOperationsEnabled || isEpic}
       >
@@ -206,12 +177,12 @@ export const GanttChartMainContent = observer(function GanttChartMainContent(
           <>
             <div
               // DO NOT REMOVE THE ID
-              id='gantt-container'
+              id="gantt-container"
               className={cn(
-                'vertical-scrollbar horizontal-scrollbar flex scrollbar-lg h-full w-full overflow-auto border-t-[0.5px] border-subtle',
+                "vertical-scrollbar horizontal-scrollbar flex scrollbar-lg h-full w-full overflow-auto border-t-[0.5px] border-subtle",
                 {
-                  'mb-8': bottomSpacing,
-                },
+                  "mb-8": bottomSpacing,
+                }
               )}
               ref={ganttContainerRef}
               onScroll={onScroll}
@@ -230,11 +201,11 @@ export const GanttChartMainContent = observer(function GanttChartMainContent(
                 showAllBlocks={showAllBlocks}
                 isEpic={isEpic}
               />
-              <div className='relative h-max min-h-full flex-shrink-0 flex-grow'>
+              <div className="relative h-max min-h-full flex-shrink-0 flex-grow">
                 <ActiveChartView />
                 {currentViewData && (
                   <div
-                    className='relative h-full'
+                    className="relative h-full"
                     style={{
                       width: `${itemsContainerWidth}px`,
                       transform: `translateY(${HEADER_HEIGHT}px)`,
@@ -252,10 +223,7 @@ export const GanttChartMainContent = observer(function GanttChartMainContent(
                     />
                     <TimelineDependencyPaths isEpic={isEpic} />
                     <TimelineDraggablePath />
-                    <GanttAdditionalLayers
-                      itemsContainerWidth={itemsContainerWidth}
-                      blockCount={blockIds.length}
-                    />
+                    <GanttAdditionalLayers itemsContainerWidth={itemsContainerWidth} blockCount={blockIds.length} />
                     <GanttChartBlocksList
                       blockIds={blockIds}
                       blockToRender={blockToRender}

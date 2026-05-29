@@ -32,6 +32,7 @@ type GanttChartRootProps = {
   enableReorder?: boolean | ((blockId: string) => boolean);
   enableAddBlock?: boolean | ((blockId: string) => boolean);
   enableSelection?: boolean | ((blockId: string) => boolean);
+  selectionEntityIds?: string[];
   enableDependency?: boolean | ((blockId: string) => boolean);
   bottomSpacing?: boolean;
   showAllBlocks?: boolean;
@@ -58,6 +59,7 @@ export const GanttChartRoot = observer(function GanttChartRoot(props: GanttChart
     enableReorder = false,
     enableAddBlock = false,
     enableSelection = false,
+    selectionEntityIds,
     enableDependency = false,
     bottomSpacing = false,
     showAllBlocks = false,
@@ -101,6 +103,7 @@ export const GanttChartRoot = observer(function GanttChartRoot(props: GanttChart
       enableReorder={enableReorder}
       enableAddBlock={enableAddBlock}
       enableSelection={enableSelection}
+      selectionEntityIds={selectionEntityIds}
       enableDependency={enableDependency}
       bottomSpacing={bottomSpacing}
       showAllBlocks={showAllBlocks}

@@ -109,6 +109,19 @@ export type TIssueFiltersToDisplayByPageType = {
   [pageType: string]: TFilterPropertiesByPageType;
 };
 
+const ISSUE_GANTT_LAYOUT_DISPLAY_FILTERS: ILayoutDisplayFiltersOptions = {
+  display_properties: ["key", "issue_type"],
+  display_filters: {
+    group_by: ["assignees", null],
+    order_by: ["sort_order", "-created_at", "-updated_at", "start_date", "-priority"],
+    type: ["active", "backlog"],
+  },
+  extra_options: {
+    access: true,
+    values: ["sub_issue"],
+  },
+};
+
 export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
   profile_issues: {
     filters: ["priority", "state_group", "label_id", "start_date", "target_date"],
@@ -264,18 +277,8 @@ export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
           values: ["sub_issue"],
         },
       },
-      gantt_chart: {
-        display_properties: ["key", "issue_type"],
-        display_filters: {
-          group_by: ["assignees", null],
-          order_by: ["sort_order", "-created_at", "-updated_at", "start_date", "-priority"],
-          type: ["active", "backlog"],
-        },
-        extra_options: {
-          access: true,
-          values: ["sub_issue"],
-        },
-      },
+      gantt: ISSUE_GANTT_LAYOUT_DISPLAY_FILTERS,
+      gantt_chart: ISSUE_GANTT_LAYOUT_DISPLAY_FILTERS,
     },
   },
   sub_work_items: {

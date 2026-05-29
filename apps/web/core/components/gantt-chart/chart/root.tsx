@@ -38,6 +38,7 @@ type ChartViewRootProps = {
   enableReorder: boolean | ((blockId: string) => boolean);
   enableAddBlock: boolean | ((blockId: string) => boolean);
   enableSelection: boolean | ((blockId: string) => boolean);
+  selectionEntityIds?: string[];
   enableDependency: boolean | ((blockId: string) => boolean);
   bottomSpacing: boolean;
   showAllBlocks: boolean;
@@ -74,6 +75,7 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
     enableReorder,
     enableAddBlock,
     enableSelection,
+    selectionEntityIds,
     enableDependency,
     bottomSpacing,
     showAllBlocks,
@@ -221,6 +223,7 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
           enableBlockRightResize={enableBlockRightResize}
           enableReorder={enableReorder}
           enableSelection={enableSelection}
+          selectionEntityIds={selectionEntityIds}
           enableAddBlock={enableAddBlock}
           enableDependency={enableDependency}
           itemsContainerWidth={itemsContainerWidth}
