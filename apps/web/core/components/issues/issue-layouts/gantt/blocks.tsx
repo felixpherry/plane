@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -31,11 +32,12 @@ import type { GanttStoreType } from "./base-gantt-root";
 
 type Props = {
   issueId: string;
+  rowId?: string;
   isEpic?: boolean;
 };
 
 export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
-  const { issueId, isEpic } = props;
+  const { issueId, rowId, isEpic } = props;
   // router
   const { workspaceSlug: routerWorkspaceSlug } = useParams();
   const workspaceSlug = routerWorkspaceSlug?.toString();
@@ -65,7 +67,7 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
         className="w-full"
         render={
           <div
-            id={`issue-${issueId}`}
+            id={`issue-${rowId ?? issueId}`}
             className="space-between relative flex h-full w-full cursor-pointer items-center rounded-sm"
             style={blockStyle}
             onClick={handleIssuePeekOverview}
@@ -106,7 +108,7 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
 
 // rendering issues on gantt sidebar
 export const IssueGanttSidebarBlock = observer(function IssueGanttSidebarBlock(props: Props) {
-  const { issueId, isEpic = false } = props;
+  const { issueId, rowId, isEpic = false } = props;
   // router
   const { workspaceSlug: routerWorkspaceSlug } = useParams();
   const workspaceSlug = routerWorkspaceSlug?.toString();
@@ -143,7 +145,7 @@ export const IssueGanttSidebarBlock = observer(function IssueGanttSidebarBlock(p
 
   return (
     <ControlLink
-      id={`issue-${issueId}`}
+      id={`issue-${rowId ?? issueId}`}
       href={workItemLink}
       onClick={handleIssuePeekOverview}
       className="line-clamp-1 w-full cursor-pointer text-13 text-primary"

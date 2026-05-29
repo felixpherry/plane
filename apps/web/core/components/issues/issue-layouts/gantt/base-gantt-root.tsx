@@ -12,8 +12,8 @@ import { useParams } from "next/navigation";
 import { ALL_ISSUES, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { EIssuesStoreType, IBlockUpdateData, TIssue } from "@plane/types";
-import { EIssueLayoutTypes, GANTT_TIMELINE_TYPE } from "@plane/types";
+import type { EIssuesStoreType, IBlockUpdateData, TIssue, TIssueKanbanFilters } from "@plane/types";
+import { EIssueFilterType, EIssueLayoutTypes, GANTT_TIMELINE_TYPE } from "@plane/types";
 import { renderFormattedPayloadDate } from "@plane/utils";
 // components
 import { TimeLineTypeContext } from "@/components/gantt-chart/contexts";
@@ -37,8 +37,10 @@ import {
 } from "@/components/gantt-chart/constants";
 
 import { IssueLayoutHOC } from "../issue-layout-HOC";
+import { getGroupByColumns, isWorkspaceLevel } from "../utils";
 import { GanttQuickAddIssueButton, QuickAddIssueRoot } from "../quick-add";
 import { IssueGanttBlock } from "./blocks";
+import { AssigneeGroupedGantt } from "./assignee-grouped-gantt";
 
 interface IBaseGanttRoot {
   viewId?: string | undefined;
@@ -68,14 +70,16 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
     issue: { getIssueById },
     subIssues: subIssuesStore,
   } = useIssueDetail();
-  const { fetchIssues, fetchNextIssues, updateIssue, quickAddIssue } = useIssuesActions(storeType);
+  const { fetchIssues, fetchNextIssues, updateIssue, quickAddIssue, updateFilters } = useIssuesActions(storeType);
   const { initGantt } = useTimeLineChart(GANTT_TIMELINE_TYPE.ISSUE);
+  const { initGantt: initGroupedGantt } = useTimeLineChart(GANTT_TIMELINE_TYPE.GROUPED);
   // states
   const [expandedIssueIds, setExpandedIssueIds] = useState<Set<string>>(new Set());
   // store hooks
   const { allowPermissions } = useUserPermissions();
 
   const appliedDisplayFilters = issuesFilter.issueFilters?.displayFilters;
+  const isAssigneeGrouped = appliedDisplayFilters?.group_by === "assignees" && !isEpic;
   // plane web hooks
   const isBulkOperationsEnabled = useBulkOperationStatus();
   const { storedValue: storedSidebarWidth, setValue: setSidebarWidth } = useLocalStorage<number>(
@@ -88,12 +92,13 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   targetDate.setDate(targetDate.getDate() + 1);
 
   useEffect(() => {
-    fetchIssues("init-loader", { canGroup: false, perPageCount: 100 }, viewId);
-  }, [fetchIssues, storeType, viewId]);
+    fetchIssues("init-loader", { canGroup: isAssigneeGrouped, perPageCount: isAssigneeGrouped ? 50 : 100 }, viewId);
+  }, [fetchIssues, isAssigneeGrouped, storeType, viewId]);
 
   useEffect(() => {
-    initGantt();
-  }, []);
+    if (isAssigneeGrouped) initGroupedGantt();
+    else initGantt();
+  }, [initGantt, initGroupedGantt, isAssigneeGrouped]);
 
   useEffect(() => {
     if (storedSidebarWidth == null) return;
@@ -106,6 +111,15 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
 
   const issuesIds = (issues.groupedIssueIds?.[ALL_ISSUES] as string[]) ?? [];
   const nextPageResults = issues.getPaginationData(undefined, undefined)?.nextPageResults;
+  const groupedColumns = getGroupByColumns({
+    groupBy: "assignees",
+    includeNone: true,
+    isWorkspaceLevel: isWorkspaceLevel(storeType),
+  })?.filter((group) => {
+    const groupIssueIds = issues.groupedIssueIds?.[group.id];
+    return Array.isArray(groupIssueIds) && groupIssueIds.length > 0;
+  });
+  const collapsedGroupIds = new Set(issuesFilter?.issueFilters?.kanbanFilters?.group_by ?? []);
 
   const getDescendantIssueIds = useCallback(
     (issueId: string): string[] => {
@@ -167,6 +181,24 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
     fetchNextIssues();
   }, [fetchNextIssues]);
 
+  const handleCollapsedGroups = useCallback(
+    (value: string) => {
+      if (!workspaceSlug) return;
+
+      let nextCollapsedGroups = issuesFilter?.issueFilters?.kanbanFilters?.group_by || [];
+      if (nextCollapsedGroups.includes(value)) {
+        nextCollapsedGroups = nextCollapsedGroups.filter((groupId) => groupId !== value);
+      } else {
+        nextCollapsedGroups = [...nextCollapsedGroups, value];
+      }
+
+      updateFilters(projectId?.toString() ?? "", EIssueFilterType.KANBAN_FILTERS, {
+        group_by: nextCollapsedGroups,
+      } as TIssueKanbanFilters);
+    },
+    [issuesFilter, projectId, updateFilters, workspaceSlug]
+  );
+
   const updateIssueBlockStructure = async (issue: TIssue, data: IBlockUpdateData) => {
     if (!workspaceSlug) return;
 
@@ -212,41 +244,52 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
 
   return (
     <IssueLayoutHOC layout={EIssueLayoutTypes.GANTT}>
-      <TimeLineTypeContext.Provider value={GANTT_TIMELINE_TYPE.ISSUE}>
+      <TimeLineTypeContext.Provider value={isAssigneeGrouped ? GANTT_TIMELINE_TYPE.GROUPED : GANTT_TIMELINE_TYPE.ISSUE}>
         <div className="h-full w-full">
-          <GanttChartRoot
-            border={false}
-            title={isEpic ? t("epic.label", { count: 2 }) : t("issue.label", { count: 2 })}
-            loaderTitle={isEpic ? t("epic.label", { count: 2 }) : t("issue.label", { count: 2 })}
-            blockIds={visibleIssueIds}
-            blockUpdateHandler={updateIssueBlockStructure}
-            blockToRender={(data: TIssue) => <IssueGanttBlock issueId={data.id} isEpic={isEpic} />}
-            sidebarToRender={(props) => (
-              <IssueGanttSidebar
-                {...props}
-                showAllBlocks
-                isEpic={isEpic}
-                nestingLevelByIssueId={nestingLevelByIssueId}
-                expandedIssueIds={expandedIssueIds}
-                onToggleSubIssues={handleToggleSubIssues}
-              />
-            )}
-            enableBlockLeftResize={isAllowed}
-            enableBlockRightResize={isAllowed}
-            enableBlockMove={isAllowed}
-            enableReorder={expandedIssueIds.size === 0 && appliedDisplayFilters?.order_by === "sort_order" && isAllowed}
-            enableAddBlock={isAllowed}
-            enableSelection={isBulkOperationsEnabled && isAllowed}
-            quickAdd={quickAdd}
-            loadMoreBlocks={loadMoreIssues}
-            canLoadMoreBlocks={nextPageResults}
-            updateBlockDates={updateBlockDates}
-            showAllBlocks
-            enableDependency
-            isEpic={isEpic}
-            sidebarWidth={sidebarWidth}
-            setSidebarWidth={setSidebarWidth}
-          />
+          {isAssigneeGrouped && groupedColumns ? (
+            <AssigneeGroupedGantt
+              storeType={storeType}
+              groupColumns={groupedColumns}
+              collapsedGroupIds={collapsedGroupIds}
+              onToggleGroup={handleCollapsedGroups}
+              sidebarWidth={sidebarWidth}
+              setSidebarWidth={setSidebarWidth}
+            />
+          ) : (
+            <GanttChartRoot
+              border={false}
+              title={isEpic ? t("epic.label", { count: 2 }) : t("issue.label", { count: 2 })}
+              loaderTitle={isEpic ? t("epic.label", { count: 2 }) : t("issue.label", { count: 2 })}
+              blockIds={visibleIssueIds}
+              blockUpdateHandler={updateIssueBlockStructure}
+              blockToRender={(data: TIssue) => <IssueGanttBlock issueId={data.id} isEpic={isEpic} />}
+              sidebarToRender={(props) => (
+                <IssueGanttSidebar
+                  {...props}
+                  showAllBlocks
+                  isEpic={isEpic}
+                  nestingLevelByIssueId={nestingLevelByIssueId}
+                  expandedIssueIds={expandedIssueIds}
+                  onToggleSubIssues={handleToggleSubIssues}
+                />
+              )}
+              enableBlockLeftResize={isAllowed}
+              enableBlockRightResize={isAllowed}
+              enableBlockMove={isAllowed}
+              enableReorder={expandedIssueIds.size === 0 && appliedDisplayFilters?.order_by === "sort_order" && isAllowed}
+              enableAddBlock={isAllowed}
+              enableSelection={isBulkOperationsEnabled && isAllowed}
+              quickAdd={quickAdd}
+              loadMoreBlocks={loadMoreIssues}
+              canLoadMoreBlocks={nextPageResults}
+              updateBlockDates={updateBlockDates}
+              showAllBlocks
+              enableDependency
+              isEpic={isEpic}
+              sidebarWidth={sidebarWidth}
+              setSidebarWidth={setSidebarWidth}
+            />
+          )}
         </div>
       </TimeLineTypeContext.Provider>
     </IssueLayoutHOC>
