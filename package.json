@@ -17,13 +17,16 @@
     "check:lint": "turbo run check:lint",
     "check:format": "turbo run check:format",
     "check:types": "turbo run check:types",
-    "prepare": "husky"
+    "prepare": "husky",
+    "sandcastle": "tsx --env-file=.sandcastle/.env .sandcastle/main.ts"
   },
   "devDependencies": {
+    "@ai-hero/sandcastle": "^0.5.12",
     "husky": "9.1.7",
     "lint-staged": "16.2.7",
     "oxfmt": "0.35.0",
     "oxlint": "1.51.0",
+    "tsx": "^4.22.3",
     "turbo": "2.8.12"
   },
   "lint-staged": {

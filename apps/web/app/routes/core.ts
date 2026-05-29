@@ -9,6 +9,11 @@ import type { RouteConfig, RouteConfigEntry } from "@react-router/dev/routes";
 
 export const coreRoutes: RouteConfigEntry[] = [
   // ========================================================================
+  // PROTOTYPES — throwaway
+  // ========================================================================
+  route("prototype/gantt-assignee-grouping", "./prototype/gantt-assignee-grouping/page.tsx"),
+
+  // ========================================================================
   // USER MANAGEMENT ROUTES
   // ========================================================================
 
