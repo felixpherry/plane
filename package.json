@@ -18,7 +18,7 @@
     "check:format": "turbo run check:format",
     "check:types": "turbo run check:types",
     "prepare": "husky",
-    "sandcastle": "tsx --env-file=.sandcastle/.env .sandcastle/main.ts"
+    "sandcastle": "tsx --env-file=.sandcastle/.env .sandcastle/main.mts"
   },
   "devDependencies": {
     "@ai-hero/sandcastle": "^0.5.12",
