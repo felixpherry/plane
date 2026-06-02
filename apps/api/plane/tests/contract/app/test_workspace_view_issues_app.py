@@ -92,6 +92,26 @@ class TestWorkspaceViewIssuesAPI:
         assert response.data["results"][str(teammate.id)]["results"][0]["id"] == str(multi_assignee_issue.id)
 
     @pytest.mark.django_db
+    def test_workspace_issues_support_group_by_project(self, session_client, workspace, create_user):
+        project_a, state_a = build_project(workspace, create_user, name="Alpha", identifier="ALP", state_group="started")
+        project_b, state_b = build_project(workspace, create_user, name="Beta", identifier="BET", state_group="started")
+
+        issue_a = Issue.objects.create(name="Alpha item", workspace=workspace, project=project_a, state=state_a, created_by=create_user)
+        issue_b = Issue.objects.create(name="Beta item", workspace=workspace, project=project_b, state=state_b, created_by=create_user)
+
+        response = session_client.get(
+            f"/api/workspaces/{workspace.slug}/issues/",
+            {"group_by": "project_id", "per_page": 20},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["grouped_by"] == "project_id"
+        assert response.data["results"][str(project_a.id)]["total_results"] == 1
+        assert response.data["results"][str(project_b.id)]["total_results"] == 1
+        assert response.data["results"][str(project_a.id)]["results"][0]["id"] == str(issue_a.id)
+        assert response.data["results"][str(project_b.id)]["results"][0]["id"] == str(issue_b.id)
+
+    @pytest.mark.django_db
     def test_workspace_issues_reject_unsupported_group_by(self, session_client, workspace, create_user):
         project, state = build_project(
             workspace, create_user, name="Alpha", identifier="ALP", state_group="backlog"

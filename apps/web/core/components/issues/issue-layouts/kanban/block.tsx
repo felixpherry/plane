@@ -68,6 +68,7 @@ interface IssueDetailsBlockProps {
   cardRef: React.RefObject<HTMLElement>;
   issue: TIssue;
   displayProperties: IIssueDisplayProperties | undefined;
+  hideProjectIdentifier?: boolean;
   updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
   quickActions: TRenderQuickActions;
   isReadOnly: boolean;
@@ -75,7 +76,16 @@ interface IssueDetailsBlockProps {
 }
 
 const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props: IssueDetailsBlockProps) {
-  const { cardRef, issue, updateIssue, quickActions, isReadOnly, displayProperties, isEpic = false } = props;
+  const {
+    cardRef,
+    issue,
+    updateIssue,
+    quickActions,
+    isReadOnly,
+    displayProperties,
+    hideProjectIdentifier = false,
+    isEpic = false,
+  } = props;
   // refs
   const menuActionRef = useRef<HTMLButtonElement | null>(null);
   // states
@@ -105,7 +115,7 @@ const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props:
   return (
     <>
       <div className="relative">
-        {issue.project_id && (
+        {issue.project_id && !hideProjectIdentifier && (
           <IssueIdentifier
             issueId={issue.id}
             projectId={issue.project_id}
@@ -309,6 +319,7 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
               cardRef={cardRef}
               issue={issue}
               displayProperties={displayProperties}
+              hideProjectIdentifier={groupId === issue.project_id}
               updateIssue={updateIssue}
               quickActions={quickActions}
               isReadOnly={!canEditIssueProperties}

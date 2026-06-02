@@ -9,6 +9,12 @@ test("issue Gantt display filters expose assignee group-by for current and legac
   assert.deepEqual(layoutOptions.gantt.display_filters.group_by, ["assignees", null]);
 });
 
+test("workspace Board display filters expose state group, assignee, and project grouping", () => {
+  const layoutOptions = ISSUE_DISPLAY_FILTERS_BY_PAGE.my_issues.layoutOptions;
+
+  assert.deepEqual(layoutOptions.kanban.display_filters.group_by, ["state_detail.group", "assignees", "project"]);
+});
+
 test("workspace Timeline display filters expose assignee grouping for current and legacy layout keys", () => {
   const layoutOptions = ISSUE_DISPLAY_FILTERS_BY_PAGE.my_issues.layoutOptions;
 

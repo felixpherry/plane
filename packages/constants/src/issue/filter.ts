@@ -221,7 +221,7 @@ export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
       kanban: {
         display_properties: WORKSPACE_ISSUE_DISPLAY_PROPERTIES_KEYS,
         display_filters: {
-          group_by: ["state_detail.group"],
+          group_by: ["state_detail.group", "assignees", "project"],
           order_by: ["sort_order", "-created_at", "-updated_at", "start_date", "-priority", "target_date"],
           type: ["active", "backlog"],
         },

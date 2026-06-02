@@ -24,6 +24,8 @@ test("workspace layout normalization preserves the shared group when it is still
     normalizeWorkspaceDisplayFilters({ layout: "kanban", group_by: "state_detail.group" }).group_by,
     "state_detail.group"
   );
+  assert.equal(normalizeWorkspaceDisplayFilters({ layout: "kanban", group_by: "assignees" }).group_by, "assignees");
+  assert.equal(normalizeWorkspaceDisplayFilters({ layout: "kanban", group_by: "project" }).group_by, "project");
 });
 
 test("workspace spreadsheet keeps the existing shared group_by value", () => {

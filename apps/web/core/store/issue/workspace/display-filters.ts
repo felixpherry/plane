@@ -7,7 +7,7 @@ const WORKSPACE_TIMELINE_LAYOUT = "gantt_chart";
 const WORKSPACE_LAYOUTS = [WORKSPACE_SPREADSHEET_LAYOUT, WORKSPACE_KANBAN_LAYOUT, WORKSPACE_TIMELINE_LAYOUT] as const;
 
 const WORKSPACE_LAYOUT_GROUP_BY_OPTIONS: Record<string, TIssueGroupByOptions[]> = {
-  [WORKSPACE_KANBAN_LAYOUT]: ["state_detail.group"],
+  [WORKSPACE_KANBAN_LAYOUT]: ["state_detail.group", "assignees", "project"],
   [WORKSPACE_TIMELINE_LAYOUT]: ["assignees"],
 };
 
