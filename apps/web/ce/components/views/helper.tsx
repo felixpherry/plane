@@ -5,6 +5,9 @@
  */
 
 import type { EIssueLayoutTypes, IProjectView } from "@plane/types";
+import { EIssueLayoutTypes as IssueLayoutTypes } from "@plane/types";
+import { LayoutSelection } from "@/components/issues/issue-layouts/filters/header/layout-selection";
+import { WorkspaceKanBanLayout } from "@/components/issues/issue-layouts/kanban/roots/workspace-root";
 import type { TWorkspaceLayoutProps } from "@/components/views/helper";
 
 export type TLayoutSelectionProps = {
@@ -14,10 +17,24 @@ export type TLayoutSelectionProps = {
 };
 
 export function GlobalViewLayoutSelection(props: TLayoutSelectionProps) {
-  return <></>;
+  const { onChange, selectedLayout } = props;
+
+  return (
+    <LayoutSelection
+      layouts={[IssueLayoutTypes.SPREADSHEET, IssueLayoutTypes.KANBAN]}
+      onChange={onChange}
+      selectedLayout={selectedLayout}
+    />
+  );
 }
 
 export function WorkspaceAdditionalLayouts(props: TWorkspaceLayoutProps) {
+  const { activeLayout } = props;
+
+  if (activeLayout === IssueLayoutTypes.KANBAN) {
+    return <WorkspaceKanBanLayout />;
+  }
+
   return <></>;
 }
 

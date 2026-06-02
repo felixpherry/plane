@@ -42,6 +42,8 @@ from plane.db.models import (
 )
 from plane.utils.issue_filters import issue_filters
 from plane.utils.order_queryset import order_issue_queryset
+from plane.utils.grouper import issue_group_values, issue_on_results, issue_queryset_grouper
+from plane.utils.paginator import GroupedOffsetPaginator
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from .. import BaseViewSet
 from plane.db.models import UserFavorite
@@ -138,6 +140,22 @@ class WorkspaceViewViewSet(BaseViewSet):
 class WorkspaceViewIssuesViewSet(BaseViewSet):
     filter_backends = (ComplexFilterBackend,)
     filterset_class = IssueFilterSet
+    SUPPORTED_GROUP_BY_FIELDS = {"state__group"}
+
+    def _validate_grouping(self, group_by, sub_group_by):
+        if sub_group_by:
+            return Response(
+                {"error": "Workspace issue grouping does not support sub_group_by"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if group_by and group_by not in self.SUPPORTED_GROUP_BY_FIELDS:
+            return Response(
+                {"error": f"Unsupported workspace group_by: {group_by}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return None
 
     def _get_project_permission_filters(self):
         """
@@ -235,6 +253,13 @@ class WorkspaceViewIssuesViewSet(BaseViewSet):
         total_issue_count_queryset = copy.deepcopy(issue_queryset)
         total_issue_count_queryset = total_issue_count_queryset.only("id")
 
+        group_by = request.GET.get("group_by", False)
+        sub_group_by = request.GET.get("sub_group_by", False)
+
+        grouping_error = self._validate_grouping(group_by, sub_group_by)
+        if grouping_error:
+            return grouping_error
+
         # Apply annotations to the issue queryset
         issue_queryset = self.apply_annotations(issue_queryset)
 
@@ -242,6 +267,38 @@ class WorkspaceViewIssuesViewSet(BaseViewSet):
         issue_queryset, order_by_param = order_issue_queryset(
             issue_queryset=issue_queryset, order_by_param=order_by_param
         )
+
+        issue_queryset = issue_queryset_grouper(
+            queryset=issue_queryset,
+            group_by=group_by,
+            sub_group_by=sub_group_by,
+        )
+
+        if group_by:
+            return self.paginate(
+                request=request,
+                order_by=order_by_param,
+                queryset=issue_queryset,
+                total_count_queryset=total_issue_count_queryset,
+                on_results=lambda issues: issue_on_results(
+                    group_by=group_by, issues=issues, sub_group_by=sub_group_by
+                ),
+                paginator_cls=GroupedOffsetPaginator,
+                group_by_fields=issue_group_values(
+                    field=group_by,
+                    slug=slug,
+                    queryset=total_issue_count_queryset,
+                ),
+                group_by_field_name=group_by,
+                count_filter=Q(
+                    Q(issue_intake__status=1)
+                    | Q(issue_intake__status=-1)
+                    | Q(issue_intake__status=2)
+                    | Q(issue_intake__isnull=True),
+                    archived_at__isnull=True,
+                    is_draft=False,
+                ),
+            )
 
         # List Paginate
         return self.paginate(

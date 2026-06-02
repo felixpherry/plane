@@ -22,15 +22,39 @@ import type {
   TSupportedFilterForUpdate,
 } from "@plane/types";
 import { EIssuesStoreType, EIssueLayoutTypes, STATIC_VIEW_TYPES } from "@plane/types";
-import { handleIssueQueryParamsByLayout } from "@plane/utils";
+import { getComputedDisplayFilters, handleIssueQueryParamsByLayout } from "@plane/utils";
 // services
 import { WorkspaceService } from "@/services/workspace.service";
 // local imports
 import type { IBaseIssueFilterStore, IIssueFilterHelperStore } from "../helpers/issue-filter-helper.store";
 import { IssueFilterHelperStore } from "../helpers/issue-filter-helper.store";
+import { getEnabledDisplayFilters } from "@/plane-web/store/issue/helpers/filter-utils";
 import type { IIssueRootStore } from "../root.store";
 
 type TWorkspaceFilters = TStaticViewTypes;
+
+const WORKSPACE_LAYOUTS = [EIssueLayoutTypes.SPREADSHEET, EIssueLayoutTypes.KANBAN] as const;
+const WORKSPACE_BOARD_GROUP_BY = "state_detail.group";
+
+const normalizeWorkspaceDisplayFilters = (
+  displayFilters: IIssueDisplayFilterOptions | undefined,
+  defaultValues?: IIssueDisplayFilterOptions
+): IIssueDisplayFilterOptions => {
+  const normalizedDisplayFilters = getEnabledDisplayFilters(getComputedDisplayFilters(displayFilters, defaultValues));
+
+  if (!WORKSPACE_LAYOUTS.includes(normalizedDisplayFilters.layout as (typeof WORKSPACE_LAYOUTS)[number])) {
+    normalizedDisplayFilters.layout = EIssueLayoutTypes.SPREADSHEET;
+  }
+
+  if (normalizedDisplayFilters.layout === EIssueLayoutTypes.KANBAN) {
+    normalizedDisplayFilters.sub_group_by = null;
+    if (normalizedDisplayFilters.group_by !== WORKSPACE_BOARD_GROUP_BY) {
+      normalizedDisplayFilters.group_by = WORKSPACE_BOARD_GROUP_BY;
+    }
+  }
+
+  return normalizedDisplayFilters;
+};
 
 export type TBaseFilterStore = IBaseIssueFilterStore & IIssueFilterHelperStore;
 
@@ -100,7 +124,7 @@ export class WorkspaceIssuesFilter extends IssueFilterHelperStore implements IWo
     const userFilters = this.getIssueFilters(viewId);
     if (!userFilters) return undefined;
 
-    const filteredParams = handleIssueQueryParamsByLayout(EIssueLayoutTypes.SPREADSHEET, "my_issues");
+    const filteredParams = handleIssueQueryParamsByLayout(userFilters?.displayFilters?.layout, "my_issues");
     if (!filteredParams) return undefined;
 
     const filteredRouteParams: Partial<Record<TIssueParams, string | boolean>> = this.computedFilteredParams(
@@ -158,26 +182,26 @@ export class WorkspaceIssuesFilter extends IssueFilterHelperStore implements IWo
       sub_group_by: [],
     };
 
-    const _filters = this.handleIssuesLocalFilters.get(EIssuesStoreType.GLOBAL, workspaceSlug, undefined, viewId);
-    displayFilters = this.computedDisplayFilters(_filters?.display_filters, {
+    const localFilters = this.handleIssuesLocalFilters.get(EIssuesStoreType.GLOBAL, workspaceSlug, undefined, viewId);
+    displayFilters = normalizeWorkspaceDisplayFilters(localFilters?.display_filters, {
       layout: EIssueLayoutTypes.SPREADSHEET,
       order_by: "-created_at",
     });
-    displayProperties = this.computedDisplayProperties(_filters?.display_properties);
+    displayProperties = this.computedDisplayProperties(localFilters?.display_properties);
     kanbanFilters = {
-      group_by: _filters?.kanban_filters?.group_by || [],
-      sub_group_by: _filters?.kanban_filters?.sub_group_by || [],
+      group_by: localFilters?.kanban_filters?.group_by || [],
+      sub_group_by: localFilters?.kanban_filters?.sub_group_by || [],
     };
 
     // Get the view details if the view is not a static view
     if (STATIC_VIEW_TYPES.includes(viewId) === false) {
-      const _filters = await this.issueFilterService.getViewDetails(workspaceSlug, viewId);
-      richFilters = _filters?.rich_filters;
-      displayFilters = this.computedDisplayFilters(_filters?.display_filters, {
+      const viewFilters = await this.issueFilterService.getViewDetails(workspaceSlug, viewId);
+      richFilters = viewFilters?.rich_filters;
+      displayFilters = normalizeWorkspaceDisplayFilters(viewFilters?.display_filters, {
         layout: EIssueLayoutTypes.SPREADSHEET,
         order_by: "-created_at",
       });
-      displayProperties = this.computedDisplayProperties(_filters?.display_properties);
+      displayProperties = this.computedDisplayProperties(viewFilters?.display_properties);
     }
 
     // override existing order by if ordered by manual sort_order
@@ -227,26 +251,12 @@ export class WorkspaceIssuesFilter extends IssueFilterHelperStore implements IWo
       switch (type) {
         case EIssueFilterType.DISPLAY_FILTERS: {
           const updatedDisplayFilters = filters as IIssueDisplayFilterOptions;
-          _filters.displayFilters = { ..._filters.displayFilters, ...updatedDisplayFilters };
+          _filters.displayFilters = normalizeWorkspaceDisplayFilters({
+            ..._filters.displayFilters,
+            ...updatedDisplayFilters,
+          });
 
-          // set sub_group_by to null if group_by is set to null
-          if (_filters.displayFilters.group_by === null) {
-            _filters.displayFilters.sub_group_by = null;
-            updatedDisplayFilters.sub_group_by = null;
-          }
-          // set sub_group_by to null if layout is switched to kanban group_by and sub_group_by are same
-          if (
-            _filters.displayFilters.layout === "kanban" &&
-            _filters.displayFilters.group_by === _filters.displayFilters.sub_group_by
-          ) {
-            _filters.displayFilters.sub_group_by = null;
-            updatedDisplayFilters.sub_group_by = null;
-          }
-          // set group_by to state if layout is switched to kanban and group_by is null
-          if (_filters.displayFilters.layout === "kanban" && _filters.displayFilters.group_by === null) {
-            _filters.displayFilters.group_by = "state";
-            updatedDisplayFilters.group_by = "state";
-          }
+          Object.assign(updatedDisplayFilters, _filters.displayFilters);
 
           runInAction(() => {
             Object.keys(updatedDisplayFilters).forEach((_key) => {
