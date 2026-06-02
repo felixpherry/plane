@@ -36,6 +36,7 @@ type Props = {
   issueId: string;
   rowId?: string;
   isEpic?: boolean;
+  hideProjectIdentifier?: boolean;
 };
 
 export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
@@ -110,7 +111,7 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
 
 // rendering issues on gantt sidebar
 export const IssueGanttSidebarBlock = observer(function IssueGanttSidebarBlock(props: Props) {
-  const { issueId, rowId, isEpic = false } = props;
+  const { issueId, rowId, isEpic = false, hideProjectIdentifier = false } = props;
   // router
   const { workspaceSlug: routerWorkspaceSlug } = useParams();
   const workspaceSlug = routerWorkspaceSlug?.toString();
@@ -154,7 +155,7 @@ export const IssueGanttSidebarBlock = observer(function IssueGanttSidebarBlock(p
       disabled={!!issueDetails?.tempId}
     >
       <div className="relative flex h-full w-full cursor-pointer items-center gap-2">
-        {issueDetails?.project_id && (
+        {issueDetails?.project_id && !hideProjectIdentifier && (
           <IssueIdentifier
             issueId={issueDetails.id}
             projectId={issueDetails.project_id}

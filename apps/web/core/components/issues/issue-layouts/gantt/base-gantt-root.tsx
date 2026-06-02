@@ -12,7 +12,7 @@ import { useParams } from "next/navigation";
 import { ALL_ISSUES, EIssueFilterType, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { EIssuesStoreType, IBlockUpdateData, TIssue, TIssueKanbanFilters } from "@plane/types";
+import type { EIssuesStoreType, GroupByColumnTypes, IBlockUpdateData, TIssue, TIssueKanbanFilters } from "@plane/types";
 import { EIssueLayoutTypes, GANTT_TIMELINE_TYPE } from "@plane/types";
 import { renderFormattedPayloadDate } from "@plane/utils";
 // components
@@ -40,7 +40,7 @@ import { IssueLayoutHOC } from "../issue-layout-HOC";
 import { getGroupByColumns, isWorkspaceLevel } from "../utils";
 import { GanttQuickAddIssueButton, QuickAddIssueRoot } from "../quick-add";
 import { IssueGanttBlock } from "./blocks";
-import { AssigneeGroupedGantt } from "./assignee-grouped-gantt";
+import { GroupedGantt } from "./assignee-grouped-gantt";
 
 interface IBaseGanttRoot {
   viewId?: string | undefined;
@@ -55,6 +55,13 @@ export type GanttStoreType =
   | EIssuesStoreType.PROJECT_VIEW
   | EIssuesStoreType.GLOBAL
   | EIssuesStoreType.EPIC;
+
+type TGroupedTimelineGroupBy = Extract<GroupByColumnTypes, "state_detail.group" | "assignees" | "project">;
+
+const GROUPED_TIMELINE_GROUP_BY_OPTIONS: TGroupedTimelineGroupBy[] = ["state_detail.group", "assignees", "project"];
+
+const isGroupedTimelineGroupBy = (groupBy: unknown): groupBy is TGroupedTimelineGroupBy =>
+  GROUPED_TIMELINE_GROUP_BY_OPTIONS.includes(groupBy as TGroupedTimelineGroupBy);
 
 export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRoot) {
   const { viewId, isCompletedCycle = false, isEpic = false } = props;
@@ -80,7 +87,9 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   const { allowPermissions } = useUserPermissions();
 
   const appliedDisplayFilters = issuesFilter.issueFilters?.displayFilters;
-  const isAssigneeGrouped = appliedDisplayFilters?.group_by === "assignees" && !isEpic;
+  const timelineGroupBy = appliedDisplayFilters?.group_by;
+  const groupedTimelineGroupBy = isGroupedTimelineGroupBy(timelineGroupBy) ? timelineGroupBy : null;
+  const isTimelineGrouped = !!groupedTimelineGroupBy && !isEpic;
   // plane web hooks
   const isBulkOperationsEnabled = useBulkOperationStatus();
   const { storedValue: storedSidebarWidth, setValue: setSidebarWidth } = useLocalStorage<number>(
@@ -93,13 +102,13 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   targetDate.setDate(targetDate.getDate() + 1);
 
   useEffect(() => {
-    fetchIssues("init-loader", { canGroup: isAssigneeGrouped, perPageCount: isAssigneeGrouped ? 50 : 100 }, viewId);
-  }, [fetchIssues, isAssigneeGrouped, storeType, viewId]);
+    fetchIssues("init-loader", { canGroup: isTimelineGrouped, perPageCount: isTimelineGrouped ? 50 : 100 }, viewId);
+  }, [fetchIssues, isTimelineGrouped, storeType, viewId]);
 
   useEffect(() => {
-    if (isAssigneeGrouped) initGroupedGantt();
+    if (isTimelineGrouped) initGroupedGantt();
     else initGantt();
-  }, [initGantt, initGroupedGantt, isAssigneeGrouped]);
+  }, [initGantt, initGroupedGantt, isTimelineGrouped]);
 
   useEffect(() => {
     if (storedSidebarWidth == null) return;
@@ -113,8 +122,8 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   const issuesIds = (issues.groupedIssueIds?.[ALL_ISSUES] as string[]) ?? [];
   const nextPageResults = issues.getPaginationData(undefined, undefined)?.nextPageResults;
   const groupedColumns = getGroupByColumns({
-    groupBy: "assignees",
-    includeNone: true,
+    groupBy: groupedTimelineGroupBy,
+    includeNone: groupedTimelineGroupBy === "assignees",
     isWorkspaceLevel: isWorkspaceLevel(storeType),
   })?.filter((group) => {
     const groupIssueIds = issues.groupedIssueIds?.[group.id];
@@ -265,11 +274,12 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
 
   return (
     <IssueLayoutHOC layout={EIssueLayoutTypes.GANTT}>
-      <TimeLineTypeContext.Provider value={isAssigneeGrouped ? GANTT_TIMELINE_TYPE.GROUPED : GANTT_TIMELINE_TYPE.ISSUE}>
+      <TimeLineTypeContext.Provider value={isTimelineGrouped ? GANTT_TIMELINE_TYPE.GROUPED : GANTT_TIMELINE_TYPE.ISSUE}>
         <div className="h-full w-full">
-          {isAssigneeGrouped && groupedColumns ? (
-            <AssigneeGroupedGantt
+          {isTimelineGrouped && groupedColumns ? (
+            <GroupedGantt
               storeType={storeType}
+              groupedBy={groupedTimelineGroupBy}
               groupColumns={groupedColumns}
               collapsedGroupIds={collapsedGroupIds}
               onToggleGroup={handleCollapsedGroups}

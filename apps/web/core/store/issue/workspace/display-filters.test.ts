@@ -17,9 +17,14 @@ test("workspace Timeline falls back to Assignee when group is missing or invalid
 
 test("workspace layout normalization preserves the shared group when it is still valid", () => {
   assert.equal(
+    normalizeWorkspaceDisplayFilters({ layout: "gantt_chart", group_by: "state_detail.group" }).group_by,
+    "state_detail.group"
+  );
+  assert.equal(
     normalizeWorkspaceDisplayFilters({ layout: "gantt_chart", group_by: "assignees" }).group_by,
     "assignees"
   );
+  assert.equal(normalizeWorkspaceDisplayFilters({ layout: "gantt_chart", group_by: "project" }).group_by, "project");
   assert.equal(
     normalizeWorkspaceDisplayFilters({ layout: "kanban", group_by: "state_detail.group" }).group_by,
     "state_detail.group"

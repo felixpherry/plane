@@ -8,7 +8,7 @@ const WORKSPACE_LAYOUTS = [WORKSPACE_SPREADSHEET_LAYOUT, WORKSPACE_KANBAN_LAYOUT
 
 const WORKSPACE_LAYOUT_GROUP_BY_OPTIONS: Record<string, TIssueGroupByOptions[]> = {
   [WORKSPACE_KANBAN_LAYOUT]: ["state_detail.group", "assignees", "project"],
-  [WORKSPACE_TIMELINE_LAYOUT]: ["assignees"],
+  [WORKSPACE_TIMELINE_LAYOUT]: ["state_detail.group", "assignees", "project"],
 };
 
 const WORKSPACE_LAYOUT_GROUP_BY_FALLBACKS: Record<string, TIssueGroupByOptions> = {

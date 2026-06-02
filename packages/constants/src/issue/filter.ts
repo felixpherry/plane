@@ -126,6 +126,19 @@ const ISSUE_GANTT_LAYOUT_DISPLAY_FILTERS: ILayoutDisplayFiltersOptions = {
   },
 };
 
+const WORKSPACE_GANTT_LAYOUT_DISPLAY_FILTERS: ILayoutDisplayFiltersOptions = {
+  display_properties: ["key", "issue_type"],
+  display_filters: {
+    group_by: ["state_detail.group", "assignees", "project"],
+    order_by: ["sort_order", "-created_at", "-updated_at", "start_date", "-priority"],
+    type: ["active", "backlog"],
+  },
+  extra_options: {
+    access: true,
+    values: ["sub_issue"],
+  },
+};
+
 export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
   profile_issues: {
     filters: ["priority", "state_group", "label_id", "start_date", "target_date"],
@@ -230,8 +243,8 @@ export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
           values: ["show_empty_groups"],
         },
       },
-      gantt: ISSUE_GANTT_LAYOUT_DISPLAY_FILTERS,
-      gantt_chart: ISSUE_GANTT_LAYOUT_DISPLAY_FILTERS,
+      gantt: WORKSPACE_GANTT_LAYOUT_DISPLAY_FILTERS,
+      gantt_chart: WORKSPACE_GANTT_LAYOUT_DISPLAY_FILTERS,
     },
   },
   issues: {

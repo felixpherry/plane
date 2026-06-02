@@ -7,7 +7,13 @@ import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { GANTT_TIMELINE_TYPE } from "@plane/types";
-import type { IBlockUpdateData, IBlockUpdateDependencyData, IGroupByColumn, TGroupedIssues } from "@plane/types";
+import type {
+  IBlockUpdateData,
+  IBlockUpdateDependencyData,
+  IGroupByColumn,
+  TGroupedIssues,
+  TIssueGroupByOptions,
+} from "@plane/types";
 import { CollapsibleButton, Loader, Row } from "@plane/ui";
 import { cn } from "@plane/utils";
 import { MultipleSelectEntityAction } from "@/components/core/multiple-select";
@@ -37,6 +43,7 @@ import {
 
 type Props = {
   storeType: GanttStoreType;
+  groupedBy: TIssueGroupByOptions;
   groupColumns: IGroupByColumn[];
   collapsedGroupIds: Set<string>;
   onToggleGroup: (groupId: string) => void;
@@ -57,6 +64,7 @@ const GroupedIssuesSidebar = observer(function GroupedIssuesSidebar(props: {
   loadingGroupIds: Set<string>;
   enableSelection: boolean;
   selectionHelpers?: TSelectionHelper;
+  hideProjectIdentifier: boolean;
 }) {
   const {
     blockIds,
@@ -67,6 +75,7 @@ const GroupedIssuesSidebar = observer(function GroupedIssuesSidebar(props: {
     loadingGroupIds,
     enableSelection,
     selectionHelpers,
+    hideProjectIdentifier,
   } = props;
   const { t } = useTranslation();
   const { getBlockById, getNumberOfDaysFromPosition, updateActiveBlockId, isBlockActive } = useTimeLineChart(
@@ -182,7 +191,11 @@ const GroupedIssuesSidebar = observer(function GroupedIssuesSidebar(props: {
                       )}
                       <div className="flex min-w-0 flex-grow items-center justify-between gap-2 truncate pl-4">
                         <div className="min-w-0 flex-grow truncate">
-                          <IssueGanttSidebarBlock issueId={block.data.issueId} rowId={block.data.rowId} />
+                          <IssueGanttSidebarBlock
+                            issueId={block.data.issueId}
+                            rowId={block.data.rowId}
+                            hideProjectIdentifier={hideProjectIdentifier}
+                          />
                         </div>
                         {duration ? (
                           <span className="flex-shrink-0 text-13 text-secondary">{duration} days</span>
@@ -200,8 +213,8 @@ const GroupedIssuesSidebar = observer(function GroupedIssuesSidebar(props: {
   );
 });
 
-export const AssigneeGroupedGantt = observer(function AssigneeGroupedGantt(props: Props) {
-  const { storeType, groupColumns, collapsedGroupIds, onToggleGroup, sidebarWidth, setSidebarWidth } = props;
+export const GroupedGantt = observer(function GroupedGantt(props: Props) {
+  const { storeType, groupedBy, groupColumns, collapsedGroupIds, onToggleGroup, sidebarWidth, setSidebarWidth } = props;
   const { t } = useTranslation();
   const { workspaceSlug, projectId } = useParams();
   const { issues } = useIssues(storeType);
@@ -340,6 +353,7 @@ export const AssigneeGroupedGantt = observer(function AssigneeGroupedGantt(props
           onLoadMoreGroup={loadMoreGroup}
           loadingGroupIds={loadingGroupIds}
           enableSelection={isBulkOperationsEnabled && (isWorkspaceStore || isAllowed)}
+          hideProjectIdentifier={groupedBy === "project"}
         />
       )}
       enableBlockLeftResize={(blockId: string) => {
