@@ -27,6 +27,8 @@ import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/iss
 import { IssueStats } from "@/plane-web/components/issues/issue-layouts/issue-stats";
 // local imports
 import { WorkItemPreviewCard } from "../../preview-card";
+import { SubWorkItemIndicator } from "../sub-work-item-indicator";
+import { shouldRenderSubWorkItemIndicator } from "../sub-work-item-indicator.utils";
 import { getBlockViewDetails } from "../utils";
 import type { GanttStoreType } from "./base-gantt-root";
 
@@ -162,7 +164,10 @@ export const IssueGanttSidebarBlock = observer(function IssueGanttSidebarBlock(p
           />
         )}
         <Tooltip tooltipContent={issueDetails?.name} isMobile={isMobile}>
-          <span className="flex-grow truncate text-13 font-medium">{issueDetails?.name}</span>
+          <span className="flex min-w-0 flex-grow items-center gap-1 truncate text-13 font-medium">
+            {shouldRenderSubWorkItemIndicator(issueDetails, storeType) && <SubWorkItemIndicator />}
+            <span className="truncate">{issueDetails?.name}</span>
+          </span>
         </Tooltip>
       </div>
     </ControlLink>

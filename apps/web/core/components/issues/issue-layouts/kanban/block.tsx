@@ -29,6 +29,7 @@ import { HIGHLIGHT_CLASS, getIssueBlockId } from "@/components/issues/issue-layo
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useKanbanView } from "@/hooks/store/use-kanban-view";
 import { useProject } from "@/hooks/store/use-project";
+import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import useIssuePeekOverviewRedirection from "@/hooks/use-issue-peek-overview-redirection";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web components
@@ -37,7 +38,14 @@ import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/iss
 import { IssueStats } from "@/plane-web/components/issues/issue-layouts/issue-stats";
 import type { TRenderQuickActions } from "../list/list-view-types";
 import { IssueProperties } from "../properties/all-properties";
+import { SubWorkItemIndicator } from "../sub-work-item-indicator";
+import { shouldRenderSubWorkItemIndicator } from "../sub-work-item-indicator.utils";
 import { WithDisplayPropertiesHOC } from "../properties/with-display-properties-HOC";
+
+const stopEventPropagation = (e: React.MouseEvent) => {
+  e.stopPropagation();
+  e.preventDefault();
+};
 
 interface IssueBlockProps {
   issueId: string;
@@ -69,14 +77,16 @@ interface IssueDetailsBlockProps {
 const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props: IssueDetailsBlockProps) {
   const { cardRef, issue, updateIssue, quickActions, isReadOnly, displayProperties, isEpic = false } = props;
   // refs
-  const menuActionRef = useRef<HTMLDivElement | null>(null);
+  const menuActionRef = useRef<HTMLButtonElement | null>(null);
   // states
   const [isMenuActive, setIsMenuActive] = useState(false);
   // hooks
   const { isMobile } = usePlatformOS();
+  const storeType = useIssueStoreType();
 
   const customActionButton = (
-    <div
+    <button
+      type="button"
       ref={menuActionRef}
       className={`flex h-full w-full cursor-pointer items-center rounded-sm p-1 text-placeholder hover:bg-layer-1 ${
         isMenuActive ? "bg-layer-1 text-primary" : "text-secondary"
@@ -84,16 +94,11 @@ const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props:
       onClick={() => setIsMenuActive(!isMenuActive)}
     >
       <MoreHorizontal className="h-3.5 w-3.5" />
-    </div>
+    </button>
   );
 
   // derived values
   const subIssueCount = issue?.sub_issues_count ?? 0;
-
-  const handleEventPropagation = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
 
   useOutsideClickDetector(menuActionRef, () => setIsMenuActive(false));
 
@@ -110,11 +115,12 @@ const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props:
           />
         )}
         <div
+          role="presentation"
           className={cn("absolute -top-1 right-0", {
             "hidden group-hover/kanban-block:block": !isMobile,
             "!block": isMenuActive,
           })}
-          onClick={handleEventPropagation}
+          onMouseDown={stopEventPropagation}
         >
           {quickActions({
             issue,
@@ -125,8 +131,9 @@ const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props:
       </div>
 
       <Tooltip tooltipContent={issue.name} isMobile={isMobile} renderByDefault={false}>
-        <div className="line-clamp-1 w-full text-body-sm-medium text-primary">
-          <span>{issue.name}</span>
+        <div className="line-clamp-1 flex w-full items-center gap-1 text-body-sm-medium text-primary">
+          {shouldRenderSubWorkItemIndicator(issue, storeType) && <SubWorkItemIndicator />}
+          <span className="truncate">{issue.name}</span>
         </div>
       </Tooltip>
 
@@ -246,7 +253,14 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
         },
       })
     );
-  }, [cardRef?.current, issue?.id, isDragAllowed, canDropOverIssue, setIsCurrentBlockDragging, setIsDraggingOverBlock]);
+  }, [
+    issue?.id,
+    isDragAllowed,
+    canDropOverIssue,
+    setIsCurrentBlockDragging,
+    setIsDraggingOverBlock,
+    setIsKanbanDragging,
+  ]);
 
   if (!issue) return null;
 

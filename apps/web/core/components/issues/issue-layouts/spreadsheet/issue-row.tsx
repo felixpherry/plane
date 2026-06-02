@@ -28,6 +28,7 @@ import RenderIfVisible from "@/components/core/render-if-visible-HOC";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
+import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import useIssuePeekOverviewRedirection from "@/hooks/use-issue-peek-overview-redirection";
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
 import { usePlatformOS } from "@/hooks/use-platform-os";
@@ -35,6 +36,8 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
 // local components
 import type { TRenderQuickActions } from "../list/list-view-types";
+import { SubWorkItemIndicator } from "../sub-work-item-indicator";
+import { shouldRenderSubWorkItemIndicator } from "../sub-work-item-indicator.utils";
 import { isIssueNew } from "../utils";
 import { IssueColumn } from "./issue-column";
 
@@ -190,11 +193,12 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
   const [isMenuActive, setIsMenuActive] = useState(false);
   // refs
   const cellRef = useRef(null);
-  const menuActionRef = useRef<HTMLDivElement | null>(null);
+  const menuActionRef = useRef<HTMLButtonElement | null>(null);
   // router
   const { workspaceSlug, projectId } = useParams();
   // hooks
   const { getProjectIdentifierById } = useProject();
+  const storeType = useIssueStoreType();
   const { getIsIssuePeeked, peekIssue } = useIssueDetail(isEpic ? EIssueServiceType.EPICS : EIssueServiceType.ISSUES);
   const { handleRedirection } = useIssuePeekOverviewRedirection(isEpic);
   const { isMobile } = usePlatformOS();
@@ -212,7 +216,8 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
   useOutsideClickDetector(menuActionRef, () => setIsMenuActive(false));
 
   const customActionButton = (
-    <div
+    <button
+      type="button"
       ref={menuActionRef}
       className={`flex h-full w-full cursor-pointer items-center rounded-sm p-1 text-placeholder hover:bg-layer-1 ${
         isMenuActive ? "bg-layer-1 text-primary" : "text-secondary"
@@ -220,7 +225,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
       onClick={() => setIsMenuActive(!isMenuActive)}
     >
       <MoreHorizontal className="h-3.5 w-3.5" />
-    </div>
+    </button>
   );
   if (!issueDetail) return null;
 
@@ -359,17 +364,19 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                   <div className="w-full overflow-hidden">
                     <Tooltip tooltipContent={issueDetail.name} isMobile={isMobile}>
                       <div
-                        className="h-full w-full cursor-pointer truncate pr-4 text-left text-13 text-primary focus:outline-none"
+                        className="flex h-full w-full items-center gap-1 truncate pr-4 text-left text-13 text-primary focus:outline-none"
                         tabIndex={-1}
                       >
-                        {issueDetail.name}
+                        {shouldRenderSubWorkItemIndicator(issueDetail, storeType) && <SubWorkItemIndicator />}
+                        <span className="truncate">{issueDetail.name}</span>
                       </div>
                     </Tooltip>
                   </div>
                 </div>
                 <div
+                  role="presentation"
                   className={`opacity-0 transition-opacity group-hover:opacity-100 ${isMenuActive ? "!opacity-100" : ""}`}
-                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
                 >
                   {quickActions({
                     issue: issueDetail,
