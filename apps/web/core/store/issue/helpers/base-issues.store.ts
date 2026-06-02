@@ -298,7 +298,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
     return layout === EIssueLayoutTypes.CALENDAR
       ? "target_date"
-      : [EIssueLayoutTypes.LIST, EIssueLayoutTypes.KANBAN]?.includes(layout)
+      : [EIssueLayoutTypes.LIST, EIssueLayoutTypes.KANBAN, EIssueLayoutTypes.GANTT]?.includes(layout)
         ? displayFilters?.group_by
         : undefined;
   }
@@ -788,14 +788,16 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     updates: { id: string; start_date?: string; target_date?: string }[],
     projectId?: string
   ) {
-    if (!projectId) return;
     const issueDatesBeforeChange: {
       id: string;
       start_date?: string;
       target_date?: string;
+      project_id?: string;
     }[] = [];
     try {
       const getIssueById = this.rootIssueStore.issues.getIssueById;
+      const updatesByProjectId = new Map<string, { id: string; start_date?: string; target_date?: string }[]>();
+
       runInAction(() => {
         for (const update of updates) {
           const dates: Partial<TIssue> = {};
@@ -803,28 +805,41 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
           if (update.target_date) dates.target_date = update.target_date;
 
           const currIssue = getIssueById(update.id);
+          const resolvedProjectId = projectId ?? currIssue?.project_id ?? undefined;
 
           if (currIssue) {
             issueDatesBeforeChange.push({
               id: update.id,
               start_date: currIssue.start_date ?? undefined,
               target_date: currIssue.target_date ?? undefined,
+              project_id: resolvedProjectId,
             });
           }
 
-          this.issueUpdate(workspaceSlug, projectId, update.id, dates, false);
+          if (!resolvedProjectId) continue;
+
+          const projectUpdates = updatesByProjectId.get(resolvedProjectId) ?? [];
+          projectUpdates.push(update);
+          updatesByProjectId.set(resolvedProjectId, projectUpdates);
+
+          this.issueUpdate(workspaceSlug, resolvedProjectId, update.id, dates, false);
         }
       });
 
-      await this.issueService.updateIssueDates(workspaceSlug, projectId, updates);
+      await Promise.all(
+        [...updatesByProjectId.entries()].map(([resolvedProjectId, projectUpdates]) =>
+          this.issueService.updateIssueDates(workspaceSlug, resolvedProjectId, projectUpdates)
+        )
+      );
     } catch (e) {
       runInAction(() => {
         for (const update of issueDatesBeforeChange) {
           const dates: Partial<TIssue> = {};
           if (update.start_date) dates.start_date = update.start_date;
           if (update.target_date) dates.target_date = update.target_date;
+          if (!update.project_id) continue;
 
-          this.issueUpdate(workspaceSlug, projectId, update.id, dates, false);
+          this.issueUpdate(workspaceSlug, update.project_id, update.id, dates, false);
         }
       });
       console.error("error while updating Timeline dependencies");

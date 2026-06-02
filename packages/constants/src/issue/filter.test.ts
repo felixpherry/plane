@@ -8,3 +8,10 @@ test("issue Gantt display filters expose assignee group-by for current and legac
   assert.deepEqual(layoutOptions.gantt_chart.display_filters.group_by, ["assignees", null]);
   assert.deepEqual(layoutOptions.gantt.display_filters.group_by, ["assignees", null]);
 });
+
+test("workspace Timeline display filters expose assignee grouping for current and legacy layout keys", () => {
+  const layoutOptions = ISSUE_DISPLAY_FILTERS_BY_PAGE.my_issues.layoutOptions;
+
+  assert.deepEqual(layoutOptions.gantt_chart.display_filters.group_by, ["assignees", null]);
+  assert.deepEqual(layoutOptions.gantt.display_filters.group_by, ["assignees", null]);
+});

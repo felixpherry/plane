@@ -230,6 +230,8 @@ export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
           values: ["show_empty_groups"],
         },
       },
+      gantt: ISSUE_GANTT_LAYOUT_DISPLAY_FILTERS,
+      gantt_chart: ISSUE_GANTT_LAYOUT_DISPLAY_FILTERS,
     },
   },
   issues: {

@@ -53,6 +53,7 @@ export type GanttStoreType =
   | EIssuesStoreType.MODULE
   | EIssuesStoreType.CYCLE
   | EIssuesStoreType.PROJECT_VIEW
+  | EIssuesStoreType.GLOBAL
   | EIssuesStoreType.EPIC;
 
 export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRoot) {
@@ -200,7 +201,7 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   );
 
   const updateIssueBlockStructure = async (issue: TIssue, data: IBlockUpdateData) => {
-    if (!workspaceSlug) return;
+    if (!workspaceSlug || (isWorkspaceStore && !canEditIssue(issue.id))) return;
 
     const payload: any = { ...data };
     if (data.sort_order) payload.sort_order = data.sort_order.newSortOrder;
@@ -208,7 +209,24 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
     updateIssue && (await updateIssue(issue.project_id, issue.id, payload));
   };
 
-  const isAllowed = allowPermissions([EUserPermissions.ADMIN, EUserPermissions.MEMBER], EUserPermissionsLevel.PROJECT);
+  const isWorkspaceStore = isWorkspaceLevel(storeType);
+  const canEditIssue = useCallback(
+    (issueId: string) => {
+      const issue = getIssueById(issueId);
+      if (!workspaceSlug || !issue?.project_id) return false;
+
+      return allowPermissions(
+        [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+        EUserPermissionsLevel.PROJECT,
+        workspaceSlug.toString(),
+        issue.project_id
+      );
+    },
+    [allowPermissions, getIssueById, workspaceSlug]
+  );
+  const isAllowed = isWorkspaceStore
+    ? visibleIssueIds.some((issueId) => canEditIssue(issueId))
+    : allowPermissions([EUserPermissions.ADMIN, EUserPermissions.MEMBER], EUserPermissionsLevel.PROJECT);
   const updateBlockDates = useCallback(
     (
       updates: {
@@ -216,15 +234,18 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
         start_date?: string;
         target_date?: string;
       }[]
-    ) =>
-      issues.updateIssueDates(workspaceSlug.toString(), updates, projectId.toString()).catch(() => {
+    ) => {
+      if (!workspaceSlug) return Promise.resolve();
+
+      return issues.updateIssueDates(workspaceSlug.toString(), updates, projectId?.toString()).catch(() => {
         setToast({
           type: TOAST_TYPE.ERROR,
           title: t("toast.error"),
           message: "Error while updating work item dates, Please try again Later",
         });
-      }),
-    [issues, projectId, workspaceSlug]
+      });
+    },
+    [issues, projectId, t, workspaceSlug]
   );
 
   const quickAdd =
@@ -273,14 +294,14 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
                   onToggleSubIssues={handleToggleSubIssues}
                 />
               )}
-              enableBlockLeftResize={isAllowed}
-              enableBlockRightResize={isAllowed}
-              enableBlockMove={isAllowed}
+              enableBlockLeftResize={(issueId: string) => (isWorkspaceStore ? canEditIssue(issueId) : isAllowed)}
+              enableBlockRightResize={(issueId: string) => (isWorkspaceStore ? canEditIssue(issueId) : isAllowed)}
+              enableBlockMove={(issueId: string) => (isWorkspaceStore ? canEditIssue(issueId) : isAllowed)}
               enableReorder={
                 expandedIssueIds.size === 0 && appliedDisplayFilters?.order_by === "sort_order" && isAllowed
               }
               enableAddBlock={isAllowed}
-              enableSelection={isBulkOperationsEnabled && isAllowed}
+              enableSelection={isBulkOperationsEnabled && (isWorkspaceStore || isAllowed)}
               quickAdd={quickAdd}
               loadMoreBlocks={loadMoreIssues}
               canLoadMoreBlocks={nextPageResults}

@@ -5,7 +5,7 @@
 import pytest
 from rest_framework import status
 
-from plane.db.models import Issue, Project, ProjectMember, State
+from plane.db.models import Issue, Project, ProjectMember, State, User, WorkspaceMember
 
 
 ROLE_MEMBER = 15
@@ -62,6 +62,34 @@ class TestWorkspaceViewIssuesAPI:
         assert response.data["results"]["started"]["total_results"] == 1
         assert response.data["results"]["backlog"]["results"][0]["id"] == str(backlog_issue.id)
         assert response.data["results"]["started"]["results"][0]["id"] == str(started_issue.id)
+
+    @pytest.mark.django_db
+    def test_workspace_issues_support_group_by_assignee(self, session_client, workspace, create_user):
+        project, state = build_project(workspace, create_user, name="Alpha", identifier="ALP", state_group="started")
+        teammate = User.objects.create(email="teammate@plane.so", first_name="Team", last_name="Mate")
+        WorkspaceMember.objects.create(workspace=workspace, member=teammate, role=ROLE_MEMBER, is_active=True)
+        ProjectMember.objects.create(project=project, member=teammate, role=ROLE_MEMBER, is_active=True)
+
+        multi_assignee_issue = Issue.objects.create(
+            name="Shared schedule",
+            workspace=workspace,
+            project=project,
+            state=state,
+            created_by=create_user,
+        )
+        multi_assignee_issue.assignees.add(create_user, teammate)
+
+        response = session_client.get(
+            f"/api/workspaces/{workspace.slug}/issues/",
+            {"group_by": "assignees__id", "per_page": 20},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["grouped_by"] == "assignees__id"
+        assert response.data["results"][str(create_user.id)]["total_results"] == 1
+        assert response.data["results"][str(teammate.id)]["total_results"] == 1
+        assert response.data["results"][str(create_user.id)]["results"][0]["id"] == str(multi_assignee_issue.id)
+        assert response.data["results"][str(teammate.id)]["results"][0]["id"] == str(multi_assignee_issue.id)
 
     @pytest.mark.django_db
     def test_workspace_issues_reject_unsupported_group_by(self, session_client, workspace, create_user):

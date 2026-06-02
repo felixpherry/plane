@@ -140,7 +140,7 @@ class WorkspaceViewViewSet(BaseViewSet):
 class WorkspaceViewIssuesViewSet(BaseViewSet):
     filter_backends = (ComplexFilterBackend,)
     filterset_class = IssueFilterSet
-    SUPPORTED_GROUP_BY_FIELDS = {"state__group"}
+    SUPPORTED_GROUP_BY_FIELDS = {"state__group", "assignees__id"}
 
     def _validate_grouping(self, group_by, sub_group_by):
         if sub_group_by:

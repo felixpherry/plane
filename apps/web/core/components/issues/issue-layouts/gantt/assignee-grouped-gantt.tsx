@@ -24,6 +24,7 @@ import { useIssuesActions } from "@/hooks/use-issues-actions";
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
 import { useTimeLineChart } from "@/hooks/use-timeline-chart";
 import { useBulkOperationStatus } from "@/plane-web/hooks/use-bulk-operation-status";
+import { isWorkspaceLevel } from "../utils";
 import type { GanttStoreType } from "./base-gantt-root";
 import {
   type TGroupedGanttRowData,
@@ -261,10 +262,27 @@ export const AssigneeGroupedGantt = observer(function AssigneeGroupedGantt(props
     timelineStore.setGroupedBlockDataMap(rowDataMap);
   }, [rowDataMap, timelineStore]);
 
-  const isAllowed = allowPermissions([EUserPermissions.ADMIN, EUserPermissions.MEMBER], EUserPermissionsLevel.PROJECT);
+  const isWorkspaceStore = isWorkspaceLevel(storeType);
+  const canEditIssue = useCallback(
+    (issueId: string) => {
+      const issue = getIssueById(issueId);
+      if (!workspaceSlug || !issue?.project_id) return false;
+
+      return allowPermissions(
+        [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+        EUserPermissionsLevel.PROJECT,
+        workspaceSlug.toString(),
+        issue.project_id
+      );
+    },
+    [allowPermissions, getIssueById, workspaceSlug]
+  );
+  const isAllowed = isWorkspaceStore
+    ? selectionIssueIds.some((issueId) => canEditIssue(issueId))
+    : allowPermissions([EUserPermissions.ADMIN, EUserPermissions.MEMBER], EUserPermissionsLevel.PROJECT);
 
   const updateIssueBlockStructure = async (row: (typeof rows)[number], data: IBlockUpdateData) => {
-    if (row.rowType !== "issue") return;
+    if (row.rowType !== "issue" || (isWorkspaceStore && !canEditIssue(row.issueId))) return;
 
     const issue = getIssueById(row.issueId);
     if (!issue || !updateIssue) return;
@@ -277,7 +295,7 @@ export const AssigneeGroupedGantt = observer(function AssigneeGroupedGantt(props
 
   const updateBlockDates = useCallback(
     (updates: IBlockUpdateDependencyData[]) => {
-      if (!workspaceSlug || !projectId) return Promise.resolve();
+      if (!workspaceSlug) return Promise.resolve();
 
       const issueUpdates = updates
         .map((update) => {
@@ -293,7 +311,7 @@ export const AssigneeGroupedGantt = observer(function AssigneeGroupedGantt(props
 
       if (issueUpdates.length === 0) return Promise.resolve();
 
-      return issues.updateIssueDates(workspaceSlug.toString(), issueUpdates, projectId.toString()).catch(() => {
+      return issues.updateIssueDates(workspaceSlug.toString(), issueUpdates, projectId?.toString()).catch(() => {
         setToast({
           type: TOAST_TYPE.ERROR,
           title: t("toast.error"),
@@ -321,15 +339,24 @@ export const AssigneeGroupedGantt = observer(function AssigneeGroupedGantt(props
           onToggleGroup={onToggleGroup}
           onLoadMoreGroup={loadMoreGroup}
           loadingGroupIds={loadingGroupIds}
-          enableSelection={isBulkOperationsEnabled && isAllowed}
+          enableSelection={isBulkOperationsEnabled && (isWorkspaceStore || isAllowed)}
         />
       )}
-      enableBlockLeftResize={(blockId: string) => isAllowed && rowDataMap[blockId]?.rowType === "issue"}
-      enableBlockRightResize={(blockId: string) => isAllowed && rowDataMap[blockId]?.rowType === "issue"}
-      enableBlockMove={(blockId: string) => isAllowed && rowDataMap[blockId]?.rowType === "issue"}
+      enableBlockLeftResize={(blockId: string) => {
+        const row = rowDataMap[blockId];
+        return row?.rowType === "issue" && (isWorkspaceStore ? canEditIssue(row.issueId) : isAllowed);
+      }}
+      enableBlockRightResize={(blockId: string) => {
+        const row = rowDataMap[blockId];
+        return row?.rowType === "issue" && (isWorkspaceStore ? canEditIssue(row.issueId) : isAllowed);
+      }}
+      enableBlockMove={(blockId: string) => {
+        const row = rowDataMap[blockId];
+        return row?.rowType === "issue" && (isWorkspaceStore ? canEditIssue(row.issueId) : isAllowed);
+      }}
       enableReorder={false}
       enableAddBlock={false}
-      enableSelection={isBulkOperationsEnabled && isAllowed}
+      enableSelection={isBulkOperationsEnabled && (isWorkspaceStore || isAllowed)}
       selectionEntityIds={selectionIssueIds}
       canLoadMoreBlocks={false}
       updateBlockDates={updateBlockDates}

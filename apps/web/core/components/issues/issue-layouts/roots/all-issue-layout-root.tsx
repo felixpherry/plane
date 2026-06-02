@@ -13,8 +13,6 @@ import { GLOBAL_VIEW_TRACKER_ELEMENTS, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@pl
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import type { EIssueLayoutTypes } from "@plane/types";
 import { EIssuesStoreType, STATIC_VIEW_TYPES } from "@plane/types";
-// assets
-import emptyView from "@/app/assets/empty-state/view.svg?url";
 // components
 import { IssuePeekOverview } from "@/components/issues/peek-overview";
 import { WorkspaceActiveLayout } from "@/components/views/helper";
@@ -44,7 +42,7 @@ export const AllIssueLayoutRoot = observer(function AllIssueLayoutRoot(props: Pr
   const searchParams = useSearchParams();
   // store hooks
   const {
-    issuesFilter: { filters, fetchFilters, updateFilterExpression },
+    issuesFilter: { filters, fetchFilters, getIssueFilters, updateFilterExpression },
     issues: { clear, groupedIssueIds, fetchIssues, fetchNextIssues },
   } = useIssues(EIssuesStoreType.GLOBAL);
   const { fetchAllGlobalViews, getViewDetailsById } = useGlobalView();
@@ -102,9 +100,11 @@ export const AllIssueLayoutRoot = observer(function AllIssueLayoutRoot(props: Pr
         clear();
         toggleLoading(true);
         await fetchFilters(workspaceSlug, globalViewId);
+        const activeFilters = getIssueFilters(globalViewId);
+        const isTimelineLayout = activeFilters?.displayFilters?.layout === "gantt";
         await fetchIssues(workspaceSlug, globalViewId, groupedIssueIds ? "mutation" : "init-loader", {
-          canGroup: false,
-          perPageCount: 100,
+          canGroup: isTimelineLayout,
+          perPageCount: isTimelineLayout ? 50 : 100,
         });
         toggleLoading(false);
       }

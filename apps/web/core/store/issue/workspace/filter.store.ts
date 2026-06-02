@@ -33,10 +33,11 @@ import type { IIssueRootStore } from "../root.store";
 
 type TWorkspaceFilters = TStaticViewTypes;
 
-const WORKSPACE_LAYOUTS = [EIssueLayoutTypes.SPREADSHEET, EIssueLayoutTypes.KANBAN] as const;
+const WORKSPACE_LAYOUTS = [EIssueLayoutTypes.SPREADSHEET, EIssueLayoutTypes.KANBAN, EIssueLayoutTypes.GANTT] as const;
 const WORKSPACE_BOARD_GROUP_BY = "state_detail.group";
+const WORKSPACE_TIMELINE_GROUP_BY = "assignees";
 
-const normalizeWorkspaceDisplayFilters = (
+export const normalizeWorkspaceDisplayFilters = (
   displayFilters: IIssueDisplayFilterOptions | undefined,
   defaultValues?: IIssueDisplayFilterOptions
 ): IIssueDisplayFilterOptions => {
@@ -50,6 +51,13 @@ const normalizeWorkspaceDisplayFilters = (
     normalizedDisplayFilters.sub_group_by = null;
     if (normalizedDisplayFilters.group_by !== WORKSPACE_BOARD_GROUP_BY) {
       normalizedDisplayFilters.group_by = WORKSPACE_BOARD_GROUP_BY;
+    }
+  }
+
+  if (normalizedDisplayFilters.layout === EIssueLayoutTypes.GANTT) {
+    normalizedDisplayFilters.sub_group_by = null;
+    if (normalizedDisplayFilters.group_by !== WORKSPACE_TIMELINE_GROUP_BY) {
+      normalizedDisplayFilters.group_by = WORKSPACE_TIMELINE_GROUP_BY;
     }
   }
 
