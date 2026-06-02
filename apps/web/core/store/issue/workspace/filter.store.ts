@@ -22,47 +22,16 @@ import type {
   TSupportedFilterForUpdate,
 } from "@plane/types";
 import { EIssuesStoreType, EIssueLayoutTypes, STATIC_VIEW_TYPES } from "@plane/types";
-import { getComputedDisplayFilters, handleIssueQueryParamsByLayout } from "@plane/utils";
+import { handleIssueQueryParamsByLayout } from "@plane/utils";
 // services
 import { WorkspaceService } from "@/services/workspace.service";
 // local imports
 import type { IBaseIssueFilterStore, IIssueFilterHelperStore } from "../helpers/issue-filter-helper.store";
 import { IssueFilterHelperStore } from "../helpers/issue-filter-helper.store";
-import { getEnabledDisplayFilters } from "@/plane-web/store/issue/helpers/filter-utils";
 import type { IIssueRootStore } from "../root.store";
+import { normalizeWorkspaceDisplayFilters } from "./display-filters";
 
 type TWorkspaceFilters = TStaticViewTypes;
-
-const WORKSPACE_LAYOUTS = [EIssueLayoutTypes.SPREADSHEET, EIssueLayoutTypes.KANBAN, EIssueLayoutTypes.GANTT] as const;
-const WORKSPACE_BOARD_GROUP_BY = "state_detail.group";
-const WORKSPACE_TIMELINE_GROUP_BY = "assignees";
-
-export const normalizeWorkspaceDisplayFilters = (
-  displayFilters: IIssueDisplayFilterOptions | undefined,
-  defaultValues?: IIssueDisplayFilterOptions
-): IIssueDisplayFilterOptions => {
-  const normalizedDisplayFilters = getEnabledDisplayFilters(getComputedDisplayFilters(displayFilters, defaultValues));
-
-  if (!WORKSPACE_LAYOUTS.includes(normalizedDisplayFilters.layout as (typeof WORKSPACE_LAYOUTS)[number])) {
-    normalizedDisplayFilters.layout = EIssueLayoutTypes.SPREADSHEET;
-  }
-
-  if (normalizedDisplayFilters.layout === EIssueLayoutTypes.KANBAN) {
-    normalizedDisplayFilters.sub_group_by = null;
-    if (normalizedDisplayFilters.group_by !== WORKSPACE_BOARD_GROUP_BY) {
-      normalizedDisplayFilters.group_by = WORKSPACE_BOARD_GROUP_BY;
-    }
-  }
-
-  if (normalizedDisplayFilters.layout === EIssueLayoutTypes.GANTT) {
-    normalizedDisplayFilters.sub_group_by = null;
-    if (normalizedDisplayFilters.group_by !== WORKSPACE_TIMELINE_GROUP_BY) {
-      normalizedDisplayFilters.group_by = WORKSPACE_TIMELINE_GROUP_BY;
-    }
-  }
-
-  return normalizedDisplayFilters;
-};
 
 export type TBaseFilterStore = IBaseIssueFilterStore & IIssueFilterHelperStore;
 
