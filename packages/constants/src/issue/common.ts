@@ -24,20 +24,22 @@ export type TIssueFilterPriorityObject = {
   icon: string;
 };
 
-export enum EIssueGroupByToServerOptions {
-  "state" = "state_id",
-  "priority" = "priority",
-  "labels" = "labels__id",
-  "state_detail.group" = "state__group",
-  "assignees" = "assignees__id",
-  "cycle" = "cycle_id",
-  "module" = "issue_module__module_id",
-  "target_date" = "target_date",
-  "project" = "project_id",
-  "created_by" = "created_by",
-  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
-  "team_project" = "project_id",
-}
+export const EIssueGroupByToServerOptions = {
+  state: "state_id",
+  priority: "priority",
+  labels: "labels__id",
+  "state_detail.group": "state__group",
+  assignees: "assignees__id",
+  cycle: "cycle_id",
+  module: "issue_module__module_id",
+  target_date: "target_date",
+  project: "project_id",
+  created_by: "created_by",
+  team_project: "project_id",
+} as const;
+
+export type EIssueGroupByToServerOptions =
+  (typeof EIssueGroupByToServerOptions)[keyof typeof EIssueGroupByToServerOptions];
 
 export enum EIssueGroupBYServerToProperty {
   "state_id" = "state_id",
@@ -158,6 +160,11 @@ export const ISSUE_DISPLAY_PROPERTIES_KEYS: (keyof IIssueDisplayProperties)[] = 
   "issue_type",
 ];
 
+export const WORKSPACE_ISSUE_DISPLAY_PROPERTIES_KEYS: (keyof IIssueDisplayProperties)[] = [
+  "project",
+  ...ISSUE_DISPLAY_PROPERTIES_KEYS,
+];
+
 export const SUB_ISSUES_DISPLAY_PROPERTIES_KEYS: (keyof IIssueDisplayProperties)[] = [
   "key",
   "assignee",
@@ -178,6 +185,10 @@ export const ISSUE_DISPLAY_PROPERTIES: {
   {
     key: "assignee",
     titleTranslationKey: "common.assignee",
+  },
+  {
+    key: "project",
+    titleTranslationKey: "common.project",
   },
   {
     key: "start_date",
@@ -225,6 +236,11 @@ export const SPREADSHEET_PROPERTY_LIST: (keyof IIssueDisplayProperties)[] = [
   "link",
   "attachment_count",
   "sub_issue_count",
+];
+
+export const WORKSPACE_SPREADSHEET_PROPERTY_LIST: (keyof IIssueDisplayProperties)[] = [
+  "project",
+  ...SPREADSHEET_PROPERTY_LIST,
 ];
 
 export const SPREADSHEET_PROPERTY_DETAILS: {
@@ -292,6 +308,14 @@ export const SPREADSHEET_PROPERTY_DETAILS: {
     descendingOrderKey: "-issue_cycle__cycle__name",
     descendingOrderTitle: "Z",
     icon: "ContrastIcon",
+  },
+  project: {
+    i18n_title: "common.project",
+    ascendingOrderKey: "project__name",
+    ascendingOrderTitle: "A",
+    descendingOrderKey: "-project__name",
+    descendingOrderTitle: "Z",
+    icon: "ProjectIcon",
   },
   priority: {
     i18n_title: "common.priority",

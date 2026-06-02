@@ -187,7 +187,10 @@ export class WorkspaceIssuesFilter extends IssueFilterHelperStore implements IWo
       layout: EIssueLayoutTypes.SPREADSHEET,
       order_by: "-created_at",
     });
-    displayProperties = this.computedDisplayProperties(localFilters?.display_properties);
+    displayProperties = {
+      ...this.computedDisplayProperties(localFilters?.display_properties),
+      project: localFilters?.display_properties?.project ?? true,
+    };
     kanbanFilters = {
       group_by: localFilters?.kanban_filters?.group_by || [],
       sub_group_by: localFilters?.kanban_filters?.sub_group_by || [],
@@ -201,7 +204,10 @@ export class WorkspaceIssuesFilter extends IssueFilterHelperStore implements IWo
         layout: EIssueLayoutTypes.SPREADSHEET,
         order_by: "-created_at",
       });
-      displayProperties = this.computedDisplayProperties(viewFilters?.display_properties);
+      displayProperties = {
+        ...this.computedDisplayProperties(viewFilters?.display_properties),
+        project: viewFilters?.display_properties?.project ?? true,
+      };
     }
 
     // override existing order by if ordered by manual sort_order

@@ -43,6 +43,8 @@ export type TIssueOrderByOptions =
   | "-issue_module__module__name"
   | "issue_cycle__cycle__name"
   | "-issue_cycle__cycle__name"
+  | "project__name"
+  | "-project__name"
   | "target_date"
   | "-target_date"
   | "estimate_point__key"
@@ -166,6 +168,7 @@ export interface IIssueDisplayProperties {
   key?: boolean;
   priority?: boolean;
   state?: boolean;
+  project?: boolean;
   sub_issue_count?: boolean;
   link?: boolean;
   attachment_count?: boolean;

@@ -19,6 +19,7 @@ import {
   EstimatePropertyIcon,
   LabelPropertyIcon,
   PriorityPropertyIcon,
+  ProjectIcon,
   StartDatePropertyIcon,
 } from "@plane/propel/icons";
 import type {
@@ -40,6 +41,7 @@ import {
   SpreadsheetCycleColumn,
   SpreadsheetLinkColumn,
   SpreadsheetPriorityColumn,
+  SpreadsheetProjectColumn,
   SpreadsheetStartDateColumn,
   SpreadsheetStateColumn,
   SpreadsheetSubIssueColumn,
@@ -87,6 +89,7 @@ export const SpreadSheetPropertyIconMap: Record<string, FC<ISvgIcons>> = {
   ModuleIcon: ModuleIcon,
   ContrastIcon: CycleIcon,
   PriorityPropertyIcon: PriorityPropertyIcon,
+  ProjectIcon: ProjectIcon,
   StartDatePropertyIcon: StartDatePropertyIcon,
   StatePropertyIcon: StatePropertyIcon,
   Link2: LinkIcon,
@@ -104,6 +107,7 @@ export const SPREADSHEET_COLUMNS: { [key in keyof IIssueDisplayProperties]: TSpr
   cycle: SpreadsheetCycleColumn,
   link: SpreadsheetLinkColumn,
   priority: SpreadsheetPriorityColumn,
+  project: SpreadsheetProjectColumn,
   start_date: SpreadsheetStartDateColumn,
   state: SpreadsheetStateColumn,
   sub_issue_count: SpreadsheetSubIssueColumn,

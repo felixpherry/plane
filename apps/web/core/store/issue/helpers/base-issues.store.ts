@@ -162,6 +162,8 @@ const ISSUE_ORDERBY_KEY: Record<TIssueOrderByOptions, keyof TIssue> = {
   "-issue_module__module__name": "module_ids",
   issue_cycle__cycle__name: "cycle_id",
   "-issue_cycle__cycle__name": "cycle_id",
+  project__name: "project_id",
+  "-project__name": "project_id",
   target_date: "target_date",
   "-target_date": "target_date",
   estimate_point__key: "estimate_point",

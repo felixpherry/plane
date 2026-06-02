@@ -300,6 +300,7 @@ export const getComputedDisplayProperties = (
   labels: displayProperties?.labels ?? true,
   priority: displayProperties?.priority ?? true,
   state: displayProperties?.state ?? true,
+  project: displayProperties?.project ?? false,
   sub_issue_count: displayProperties?.sub_issue_count ?? true,
   attachment_count: displayProperties?.attachment_count ?? true,
   link: displayProperties?.link ?? true,
